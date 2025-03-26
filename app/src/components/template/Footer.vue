@@ -5,18 +5,10 @@
 <template lang="pug">
 footer.footer
   .container
-    .columns
-      .column Example
-
-      .column ShareButtons
-
-    .box
-      .is-pulled-right
-        a(href="/") pcmhelper.ru
-        | &nbsp;&copy; 2025
-      .button.is-light true
+    a(href="/") pcmhelper.ru
+    | &nbsp;&copy; 2025
 </template>
 
 <style scoped>
-footer.footer {padding-bottom: .5rem}
+footer.footer {padding-bottom: .5rem; padding-top: .5rem}
 </style>

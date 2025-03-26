@@ -1,4 +1,4 @@
 User-Agent: *
 Allow: /
-Host: https://pcmhelp.ru
-sitemap: https://pcmhelp.ru/sitemaps.xml
+Host: https://pcmhelper.ru
+sitemap: https://pcmhelper.ru/sitemaps.xml
