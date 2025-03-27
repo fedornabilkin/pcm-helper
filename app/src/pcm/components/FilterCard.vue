@@ -59,23 +59,26 @@ const openModal = (item) => {
 
         p {{ item.getFace() }}
         hr
-        .mb-2
-          span.icon(title="Способности")
-            i.fa.fa-wand-magic-sparkles(:class="item.textColor(item)")
-          | {{ item.skill }}
 
         tag-list(:tagclass="bgTag(item)" :tags="item.keywords")
-        button.button.is-small(@click="openModal(item)") Еще слова
+        button.button.is-small.mb-2(@click="openModal(item)") Еще слова
 
-    .card-content
-      .content
-        span.icon(title="Восприятие")
-          i.fa.fa-eye(:class="item.textColor(item)")
-        | {{ item.getPerception() }}
-      .content
-        span.icon(title="Использовать")
-          i.fa.fa-user-check(:class="item.textColor(item)")
-        | {{ item.getUse() }}
+        p
+          span.icon(title="Витальный вопрос")
+            i.fa.fa-person-circle-question(:class="item.textColor(item)" aria-hidden='true')
+          | {{ item.question }}
+        p
+          span.icon(title="Способности")
+            i.fa.fa-wand-magic-sparkles(:class="item.textColor(item)" aria-hidden='true')
+          | {{ item.skill }}
+        p
+          span.icon(title="Восприятие")
+            i.fa.fa-eye(:class="item.textColor(item)" aria-hidden='true')
+          | {{ item.getPerception() }}
+        p
+          span.icon(title="Использовать")
+            i.fa.fa-user-check(:class="item.textColor(item)" aria-hidden='true')
+          | {{ item.getUse() }}
 </template>
 
 <style scoped>
