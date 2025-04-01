@@ -30,8 +30,8 @@ const headerIcon = (item) => {
   return icons[item.name]
 }
 
-const openModal = (item) => {
-  emit('openModal', item)
+const openModal = (item, type) => {
+  emit('openModal', item, type)
 }
 </script>
 
@@ -61,7 +61,6 @@ const openModal = (item) => {
         hr
 
         tag-list(:tagclass="bgTag(item)" :tags="item.keywords")
-        button.button.is-small.mb-2(@click="openModal(item)") Еще слова
 
         p
           span.icon(title="Витальный вопрос")
@@ -79,6 +78,10 @@ const openModal = (item) => {
           span.icon(title="Использовать")
             i.fa.fa-user-check(:class="item.textColor(item)" aria-hidden='true')
           | {{ item.getUse() }}
+    footer.card-footer
+      a.card-footer-item(:class="item.textColor(item)" @click="openModal(item, 'word')") Слова
+      a.card-footer-item(:class="item.textColor(item)" @click="openModal(item, 'needs')") Потребности
+      a.card-footer-item(:class="item.textColor(item)" @click="openModal(item, 'stress')") Стресс
 </template>
 
 <style scoped>
