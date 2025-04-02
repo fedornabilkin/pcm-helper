@@ -36,7 +36,7 @@ const openModal = (item, type) => {
 </script>
 
 <template lang="pug">
-  .card
+  .card(:class="item.name")
     header.card-header(:class="bgCard(item)")
       p.card-header-title {{ item.personalityType }}
       .card-header-icon
@@ -85,5 +85,50 @@ const openModal = (item, type) => {
 </template>
 
 <style scoped>
+/* ----------------------------------------------
+  URL: https://xsgames.co/animatiss
+---------------------------------------------- */
 
+.card.dreamer .card-header-title {
+  animation: blur-out-contract 12s linear both;
+  animation-iteration-count: infinite;
+}
+
+@keyframes blur-out-contract {
+  0% {transform: scale(1); filter: blur(.01px);}
+  20% {transform: scale(0); filter: blur(12px); opacity: 0}
+  25% {transform: scale(1); filter: blur(.01px); opacity: 1}
+}
+
+.card.rebel .card-header-title{
+  transform: rotate(-4deg);
+}
+
+.card.rebel .card-header-icon span.icon{
+  animation:jello-horizontal 7s linear both;
+  animation-iteration-count: infinite;
+  animation-delay: .3s;
+}
+
+@keyframes jello-horizontal {
+  0% {transform: scaleZ(1);}
+  3% {transform: scale3d(1.25, .75, 1);}
+  4% {transform: scale3d(.75, 1.25, 1);}
+  5% {transform: scale3d(1.15, .85, 1);}
+  6% {transform: scale3d(.95, 1.05, 1);}
+  7% {transform: scale3d(1.05, .95, 1);}
+  100% {transform: scaleZ(1);}
+}
+
+.card.activist .card-header-title {
+  animation: move-right-left 15s linear both;
+  animation-iteration-count: infinite;
+  animation-delay: .3s;
+}
+
+@keyframes move-right-left {
+  0% {transform: translateX(0)}
+  50% {transform: translateX(50px)}
+  100% {transform: translateX(0)}
+}
 </style>
