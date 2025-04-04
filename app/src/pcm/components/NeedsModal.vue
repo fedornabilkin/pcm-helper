@@ -20,18 +20,18 @@ const close = () => {
       button.delete(aria-label='close' @click='close')
     section.modal-card-body
       .mb-2(v-for="need in item.getNeeds()")
-        .message(:class="item.tagBackground()")
+        .message(:class="item.backgroundColor()")
           .message-body
             | {{ need.title }}
         .columns.is-multiline
           .column
-            span.icon(:class="item.textColor(item)")
+            span.icon(:class="item.textColor()")
               i.fa.fa-thumbs-up.fa-lg
             | {{ need.good }}
           .column
-            span.icon(:class="item.textColor(item)")
+            span.icon(:class="item.textColor()")
               i.fa.fa-thumbs-down
             | {{ need.bad }}
     footer.modal-card-foot
-      button.button(@click='close') Закрыть
+      button.button(@click='close' :class="item.backgroundColor()" aria-label="close") Закрыть
 </template>

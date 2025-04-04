@@ -21,26 +21,34 @@ const close = () => {
       p.modal-card-title Уровни стресса {{ item.personalityType }}
       button.delete(aria-label='close' @click='close')
     section.modal-card-body
-      .notification.is-light(:class="item.tagBackground()")
-        p.subtitle.is-5 Первая ступень
-        .mb-1
-          b Слова:&nbsp;
-          | {{ steps.one.word }}
-        .mb-0
-          b Поведение:&nbsp;
-          | {{ steps.one.behavior }}
-      .notification.is-light(:class="item.tagBackground()")
-        p.subtitle.is-5 Вторая ступень
-        ul(v-for="item in steps.two")
-          li - {{ item }}
-      .notification.is-light(:class="item.tagBackground()")
-        p.subtitle.is-5 Третья ступень
-        .mb-1
-          b Слова:&nbsp;
-          | {{ steps.three.word }}
-        .mb-0
-          b Поведение:&nbsp;
-          | {{ steps.three.behavior }}
+      .message(:class="item.backgroundColor()")
+        .message-header
+          p {{ stress.requirement }}
+        .message-body
+          span.icon.is-pulled-right
+            i.fa.fa-dice-one.fa-2x(aria-hidden="true")
+          .mb-1
+            b Слова:&nbsp;
+            | {{ steps.one.word }}
+          .mb-4
+            b Поведение:&nbsp;
+            | {{ steps.one.behavior }}
+
+          span.icon.is-pulled-right
+            i.fa.fa-dice-two.fa-2x(aria-hidden="true")
+          ul(v-for="item in steps.two")
+            li - {{ item }}
+          .mb-4
+
+          span.icon.is-pulled-right
+            i.fa.fa-dice-three.fa-2x(aria-hidden="true")
+          .mb-1
+            b Слова:&nbsp;
+            | {{ steps.three.word }}
+          .mb-0
+            b Поведение:&nbsp;
+            | {{ steps.three.behavior }}
+
     footer.modal-card-foot
-      button.button(@click='close') Закрыть
+      button.button(@click='close' :class="item.backgroundColor()" aria-label="close") Закрыть
 </template>

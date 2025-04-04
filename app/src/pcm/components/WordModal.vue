@@ -19,11 +19,11 @@ const close = () => {
       p.modal-card-title Ключевые слова {{ item.personalityType }}
       button.delete(aria-label='close' @click='close')
     section.modal-card-body
-      TagList(:tagclass="item.tagBackground()" :tags="item.getVerb()")
+      TagList(:tagclass="item.backgroundColor()" :tags="item.getVerb()")
       hr
-      TagList(:tagclass="item.tagBackground()" :tags="item.getNoun()")
+      TagList(:tagclass="item.backgroundColor()" :tags="item.getNoun()")
       hr
-      TagList(:tagclass="item.tagBackground()" :tags="item.getAdjective()")
+      TagList(:tagclass="item.backgroundColor()" :tags="item.getAdjective()")
     footer.modal-card-foot
-      button.button(@click='close') Закрыть
+      button.button(@click='close' :class="item.backgroundColor()" aria-label="close") Закрыть
 </template>

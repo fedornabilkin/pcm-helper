@@ -15,7 +15,7 @@ const bgCard = (item) => {
 }
 
 const bgTag = (item) => {
-  return item.tagBackground()
+  return item.backgroundColor()
 }
 
 const headerIcon = (item) => {
@@ -64,24 +64,24 @@ const openModal = (item, type) => {
 
         p
           span.icon(title="Витальный вопрос")
-            i.fa.fa-person-circle-question(:class="item.textColor(item)" aria-hidden='true')
+            i.fa.fa-question-circle(:class="item.textColor()" aria-hidden='true')
           | {{ item.question }}
         p
           span.icon(title="Способности")
-            i.fa.fa-wand-magic-sparkles(:class="item.textColor(item)" aria-hidden='true')
+            i.fa.fa-wand-magic-sparkles(:class="item.textColor()" aria-hidden='true')
           | {{ item.skill }}
         p
           span.icon(title="Восприятие")
-            i.fa.fa-eye(:class="item.textColor(item)" aria-hidden='true')
+            i.fa.fa-eye(:class="item.textColor()" aria-hidden='true')
           | {{ item.getPerception() }}
         p
           span.icon(title="Использовать")
-            i.fa.fa-user-check(:class="item.textColor(item)" aria-hidden='true')
+            i.fa.fa-user-check(:class="item.textColor()" aria-hidden='true')
           | {{ item.getUse() }}
     footer.card-footer
-      a.card-footer-item(:class="item.textColor(item)" @click="openModal(item, 'word')") Слова
-      a.card-footer-item(:class="item.textColor(item)" @click="openModal(item, 'needs')") Потребности
-      a.card-footer-item(:class="item.textColor(item)" @click="openModal(item, 'stress')") Стресс
+      a.card-footer-item(:class="item.textColor()" @click="openModal(item, 'word')") Слова
+      a.card-footer-item(:class="item.textColor()" @click="openModal(item, 'needs')") Потребности
+      a.card-footer-item(:class="item.textColor()" @click="openModal(item, 'stress')") Стресс
 </template>
 
 <style scoped>

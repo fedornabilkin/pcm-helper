@@ -14,7 +14,7 @@ export class pcmFilter {
   perception = {short:''}
   use = {short:''}
   needs = []
-  distress = {steps: {one:{}, two:[], three: {}}}
+  distress = {requirement: '', steps: {one: {}, two: [], three: {}}}
 
   constructor(config = {}) {
     Object.assign(this, config)
@@ -56,7 +56,7 @@ export class pcmFilter {
     return this.distress
   }
 
-  tagBackground() {
+  backgroundColor() {
     return 'is-' + this.color.bulmaName
   }
 
