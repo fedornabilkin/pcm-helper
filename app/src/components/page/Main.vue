@@ -12,7 +12,7 @@ const service = new PCM()
 
 const items = ref([])
 
-service.getFilters()
+service.getFilter()
     .then((result) => {
       for(const node of result) {
         items.value.push(new pcmFilter(node))
@@ -43,7 +43,7 @@ const openModal = (item, type) => {
 .container.mb-4
   .columns.is-multiline
     .column.is-half-tablet.is-one-third-fullhd(v-for="item in items")
-      filter-card(:item="item" @open-modal="openModal")
+      FilterCard(:item="item" @open-modal="openModal")
 
 WordModal(
   v-if="wordModalActive"
