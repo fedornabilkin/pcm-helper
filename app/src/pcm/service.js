@@ -30,6 +30,16 @@ export default class PCM {
     })
   }
 
+  getFilterByName(name) {
+    const items = {logic, persistent, soulful, dreamer, rebel, activist}
+    return new Promise((resolve, reject) => {
+      if (items[name] === undefined) {
+        reject(`Name ${name} is invalid`)
+      }
+      resolve(items[name])
+    })
+  }
+
   getChannel() {
     return new Promise((resolve, reject) => {
       resolve([directive, caring, emotional, question, interrupt])
