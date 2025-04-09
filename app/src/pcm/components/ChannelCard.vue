@@ -4,6 +4,7 @@ import {ref} from "vue";
 import {pcmFilter} from "@/pcm/entity/filter";
 
 const props = defineProps(['item'])
+const emit = defineEmits(['openModal'])
 const item = props.item
 
 const useFilter = ref([])
@@ -28,6 +29,10 @@ for (const useNode of item.filter.use) {
 
 for (const useNode of item.filter.ignore) {
   getFilter(useNode, false)
+}
+
+const openModal = (item, type) => {
+  emit('openModal', item, type)
 }
 
 </script>
@@ -60,6 +65,8 @@ for (const useNode of item.filter.ignore) {
               i.fa.fa-thumbs-down
           span.tag(v-for="tag in ignoreFilter" :class="tag.backgroundColor()")
             | {{ tag.personalityType }}
+    footer.card-footer
+      a.card-footer-item.has-text-black(@click="openModal(item, 'examples')") Примеры
 </template>
 
 <style>
