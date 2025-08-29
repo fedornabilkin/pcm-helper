@@ -48,6 +48,16 @@ const menuList = {
   //   },
   //   icon: 'fa-person-military-pointing'
   // },
+  mymraCreation: {
+    anchor: {
+      full:'Мымра-creation',
+      short:'Мымра',
+    },
+    route: {
+      name: 'mymraCreation'
+    },
+    icon: 'fa-ghost'
+  },
 }
 
 const currentRoute = (r, i) => {

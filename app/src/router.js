@@ -4,6 +4,7 @@ import PageNotFound from '@/components/page/PageNotFound.vue';
 import Personality from "@/components/page/Personality.vue";
 import Channel from "@/components/page/Channel.vue";
 import Interaction from "@/components/page/Interaction.vue";
+import MymraCreation from "@/components/page/MymraCreation.vue";
 
 
 const routes = [
@@ -43,6 +44,14 @@ const routes = [
             title: 'Стили взаимодействия'
         },
         component: Interaction
+    },
+    {
+        path: '/mymra-creation/:id?',
+        name: 'mymraCreation',
+        meta: {
+            title: 'Мымра-creation'
+        },
+        component: MymraCreation
     },
 
     {

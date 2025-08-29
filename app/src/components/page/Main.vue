@@ -1,5 +1,4 @@
 <script setup>
-
 import PCM from "@/pcm/service";
 import {pcmFilter} from "@/pcm/entity/filter";
 import {ref} from "vue";
@@ -68,5 +67,4 @@ StressModal(
 </template>
 
 <style>
-
 </style>
