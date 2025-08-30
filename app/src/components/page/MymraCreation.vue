@@ -21,20 +21,24 @@ if(router.currentRoute.value.params.id) {
 let graphService = new GraphService({storeId: networkId.value});
 let networkService = new NetworkService({storeId: networkId.value});
 
+const nodes = ref(graphService.nodes);
+const links = ref(graphService.links);
+const funcCircle = ref(graphService.funcCircles);
+const networks = ref(networkService.networks);
+
 watch(
     () => router.currentRoute.value.params.id,
     () => {
       networkId.value = Number(router.currentRoute.value.params.id) ?? 0
       currentNode.value = undefined;
       graphService = new GraphService({storeId: networkId.value});
+      nodes.value = graphService.nodes
+      links.value = graphService.links
+      funcCircle.value = graphService.funcCircles
       reRender()
     }
 )
 
-const nodes = ref(graphService.nodes);
-const links = ref(graphService.links);
-const funcCircle = ref(graphService.funcCircles);
-const networks = ref(networkService.networks);
 
 const currentNetwork = ref<Network | undefined>(networkService.findNetwork(networkId.value));
 const currentNode = ref<Node | undefined>(undefined);

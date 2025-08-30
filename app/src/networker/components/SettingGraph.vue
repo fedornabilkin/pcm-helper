@@ -48,11 +48,11 @@ const removeLink = (link): void => {
 </script>
 
 <template lang="pug">
-  .panel
-    .panel-block
-      .is-centered
-        button.button.mb-2(@click="addNode") Добавить
-    .panel-tabs(v-if="props.currentNode" )
+  .mr-1
+    button.button.mb-2(@click="addNode") Добавить
+    .is-pulled-right Контактов: {{ props.nodes.length }}
+  .panel(v-if="props.currentNode" )
+    .panel-tabs
       a(:class="{'is-active': activeTab === 1}" @click="setActiveTab(1)")
         i.fa.fa-user
       a(:class="{'is-active': activeTab === 2}" @click="setActiveTab(2)")
