@@ -1,15 +1,17 @@
-import {NodeBuilder, LinkBuilder, CircleBuilder} from "../entity/graph/builder";
+import {NodeBuilder, LinkBuilder, CircleBuilder, FactBuilder} from "../entity/graph/builder";
 import { Node } from "../entity/graph/node";
 import { Link } from "../entity/graph/link";
 import { useGraphStore } from "../composable/graphStore.ts";
 import { DataTransfer } from "../graph/dataTransfer.ts";
 import {MainService} from "./mainService.ts";
+import {Fact} from "../entity/graph/Fact.ts";
 
 export class GraphService extends MainService{
   private storeId: number = 0
   private nodeBuilder: NodeBuilder;
   private linkBuilder: LinkBuilder;
   private circleBuilder: CircleBuilder;
+  private factBuilder: FactBuilder;
   private graphStore: any;
 
   nodes: Node[] = [];
@@ -23,6 +25,7 @@ export class GraphService extends MainService{
     this.nodeBuilder = new NodeBuilder();
     this.linkBuilder = new LinkBuilder();
     this.circleBuilder = new CircleBuilder();
+    this.factBuilder = new FactBuilder();
 
     this.graphStore = useGraphStore(this.storeId);
 
@@ -77,6 +80,18 @@ export class GraphService extends MainService{
   removeFuncCircle(circleId: string | number) {
     const index = this.funcCircles.findIndex(c => c.id === circleId);
     if (index !== -1) this.funcCircles.splice(index, 1);
+  }
+
+  addFact(node: Node): Fact {
+    this.factBuilder.build({ id: this.nextId(node.facts)});
+    const fact = this.factBuilder.getEntity();
+    node.facts.push(fact);
+    return fact;
+  }
+
+  removeFact(node: Node, fact: Fact): void {
+    const index = node.facts.findIndex(f => f.id === fact.id);
+    if (index !== -1) node.facts.splice(index, 1);
   }
 
   toDTO(): DataTransfer {

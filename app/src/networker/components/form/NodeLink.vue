@@ -59,8 +59,14 @@ const remove = (link: Link): void => {
   emit('remove', link)
 }
 
-const setDistance = (dist: any): void => {
+const setDistance = (dist: number): void => {
   linkModel.value.distance = dist.distance
+  change()
+}
+
+const setStroke = (color: string): void => {
+  console.log(color)
+  linkModel.value.stroke = color.color
   change()
 }
 
@@ -69,6 +75,12 @@ const distance = [
   {name: 'production', label: 'Продуктивность', distance: 200},
   {name: 'evolution', label: 'Развитие', distance: 350},
   {name: 'oblivion', label: 'Забвение', distance: 600},
+]
+
+const colors = [
+  {name: 'red', label: '', color: '#ea3525'},
+  {name: 'green', label: '', color: '#397f24'},
+  {name: 'gray', label: '', color: '#818181'},
 ]
 
 </script>
@@ -94,16 +106,25 @@ const distance = [
     .column(v-if="linkModel")
       .field.has-addons
         .control
-          input.input(v-model="linkModel.distance" type='text' @keyup="change")
-        .control
-          button.button
-            span.icon
-              i.fa.fa-arrow-alt-circle-right
+          input.input(v-model="linkModel.distance" type='number' @change="change" min="50" max="1000" step="10")
+        .control.is-expanded
+          input.input(v-model="linkModel.stroke" type='color' @change="change")
 
       .tags
-        span.tag.is-hoverable(v-for="(dist, index) in distance" :key="index" :class="dist.class")
+        span.tag.is-hoverable(v-for="(dist, index) in distance" :key="index")
           span(@click="setDistance(dist)") {{ dist.label }}
+
+      .tags
+        span.tag.is-hoverable(
+          v-for="(color, index) in colors"
+          :key="index"
+          :class="color.name"
+          @click="setStroke(color)"
+        )
 </template>
 
-<style>
+<style scoped>
+.tags .tag.red {background-color: #ea3525}
+.tags .tag.green {background-color: #397f24}
+.tags .tag.gray {background-color: #818181}
 </style>

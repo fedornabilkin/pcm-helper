@@ -1,9 +1,11 @@
 import MainEntity from "../../../core/builder/mainEntity.ts";
+import {Fact} from "./Fact.ts";
 
 export class Node extends MainEntity{
   id: number|undefined = undefined;
   name: string = ''
   description: string = ''
+  facts: Fact[] = []
   lead: boolean = false
 
   x: number = 150

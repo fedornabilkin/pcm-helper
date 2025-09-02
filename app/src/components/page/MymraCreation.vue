@@ -12,6 +12,7 @@ import {GraphService} from "@/networker/service/graphService.ts";
 import {NetworkService} from "@/networker/service/networkService.ts";
 import NodeCard from "@/networker/components/NodeCard.vue";
 import LinkCard from "@/networker/components/LinkCard.vue";
+import {Fact} from "@/networker/entity/graph/Fact.ts";
 
 const router = useRouter()
 let networkId = ref(0)
@@ -42,6 +43,7 @@ watch(
 
 const currentNetwork = ref<Network | undefined>(networkService.findNetwork(networkId.value));
 const currentNode = ref<Node | undefined>(undefined);
+const currentFact = ref<Fact | undefined>(undefined);
 
 const isLoading = ref(false)
 const isSaved = ref(false)
@@ -131,6 +133,21 @@ const switchNetwork = (item: Network): void => {
   router.push({params: {id: item.id}})
 }
 
+const addFact = (): void => {
+  if (currentNode.value) {
+    currentFact.value = graphService.addFact(currentNode.value)
+    reRender();
+  }
+}
+
+const removeFact = (fact: Fact): void => {
+  if (currentNode.value) {
+    graphService.removeFact(currentNode.value, fact)
+    currentFact.value = undefined
+    reRender();
+  }
+}
+
 </script>
 
 <template lang="pug">
@@ -152,6 +169,7 @@ const switchNetwork = (item: Network): void => {
     .column.is-half-tablet
       setting-graph.setting-graph(
         :current-node="currentNode"
+        :current-fact="currentFact"
         :nodes="nodes"
         :links="links"
         @change="change"
@@ -159,6 +177,8 @@ const switchNetwork = (item: Network): void => {
         @removeNode="removeNode"
         @addLink="addLink"
         @removeLink="removeLink"
+        @addFact="addFact"
+        @removeFact="removeFact"
       )
 
 

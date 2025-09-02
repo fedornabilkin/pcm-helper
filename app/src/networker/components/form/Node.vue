@@ -49,7 +49,7 @@ const filters = [
 
     .field
       .control
-        input(v-model="props.node.fill" type="color")
+        input(v-model="props.node.fill" type="color" @change="change")
 
     .tags
       span.tag.is-hoverable(v-for="(filter, index) in filters" :key="index" :class="filter.class")
