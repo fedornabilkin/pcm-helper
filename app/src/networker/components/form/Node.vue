@@ -2,6 +2,10 @@
 const props = defineProps(['node'])
 const emit = defineEmits(['change', 'remove'])
 
+const vFocus = {
+  mounted: (el) => el.focus()
+}
+
 const change = (): void => {
   emit('change')
 }
@@ -30,7 +34,7 @@ const filters = [
   div(v-if="props.node")
     .field.has-addons
       .control
-        input.input(v-model="props.node.name" type='text' @keyup="change")
+        input.input(v-model="props.node.name" type="text" @keyup="change" v-focus)
       .control
         button.button(@click="remove")
           span.has-text-danger

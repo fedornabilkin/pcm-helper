@@ -56,6 +56,8 @@ const remove = (link: Link): void => {
   if(nodeId) {
     unAvailableNodeIds.value.delete(nodeId)
   }
+  linkModel.value = undefined
+  activeLinkIndex.value = null
   emit('remove', link)
 }
 
@@ -65,7 +67,6 @@ const setDistance = (dist: number): void => {
 }
 
 const setStroke = (color: string): void => {
-  console.log(color)
   linkModel.value.stroke = color.color
   change()
 }
@@ -109,7 +110,6 @@ const colors = [
           input.input(v-model="linkModel.distance" type='number' @change="change" min="50" max="1000" step="10")
         .control.is-expanded
           input.input(v-model="linkModel.stroke" type='color' @change="change")
-
       .tags
         span.tag.is-hoverable(v-for="(dist, index) in distance" :key="index")
           span(@click="setDistance(dist)") {{ dist.label }}

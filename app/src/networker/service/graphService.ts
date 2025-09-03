@@ -13,10 +13,14 @@ export class GraphService extends MainService{
   private circleBuilder: CircleBuilder;
   private factBuilder: FactBuilder;
   private graphStore: any;
+  currentNode: Node;
+  private currentFact: Fact;
 
   nodes: Node[] = [];
   links: Link[] = [];
   funcCircles: any[] = [];
+
+  cbActiveNode = (node: Node) => {}
 
   constructor(config: any = {}) {
     super();
@@ -38,10 +42,20 @@ export class GraphService extends MainService{
     this.storeId = id
   }
 
+  setCurrentNode(node: Node|undefined): void {
+    this.currentNode = node
+    this.cbActiveNode(node)
+  }
+
+  getCurrentNode(): Node {
+    return this.currentNode
+  }
+
   addNode(name: string = ""): Node {
     this.nodeBuilder.build({ id: this.nextId(this.nodes), name });
     const node = this.nodeBuilder.getEntity();
     this.nodes.push(node);
+    this.setCurrentNode(node)
     return node;
   }
 
@@ -54,11 +68,17 @@ export class GraphService extends MainService{
       .forEach(l => this.removeLink(l));
 
     this.nodes.splice(index, 1);
+    this.setCurrentNode()
   }
 
-  addLink(source: Node, target: Node, distance = 100): Link {
+  getNodesCount(): number {
+    return this.nodes.length
+  }
+
+  addLink(target: Node, distance = 100): Link {
+    if (!this.currentNode) return
     this.linkBuilder.build({
-      id: this.nextId(this.links), source, target, distance,
+      id: this.nextId(this.links), source: this.currentNode, target, distance,
     });
     const link = this.linkBuilder.getEntity();
     this.links.push(link);

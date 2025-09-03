@@ -1,15 +1,20 @@
 <script setup lang="ts">
 
 import {Fact} from "@/networker/entity/graph/Fact.ts";
-import {computed} from "vue";
 
 const props = defineProps(['node', 'fact'])
-const emit = defineEmits(['change', 'add', 'remove'])
+const emit = defineEmits(['change', 'add', 'remove', 'save'])
 
-const items = computed(() => props.node.facts.reverse())
+const vFocus = {
+  mounted: (el) => el.focus()
+}
 
 const change = (): void => {
   emit('change')
+}
+
+const save = (): void => {
+  emit('save')
 }
 
 const remove = (fact: Fact): void => {
@@ -24,12 +29,17 @@ const add = (): void => {
 
 <template lang="pug">
   div
+    .mb-1 {{props.node.getName()}}
     .field.has-addons
       .control
         button.button.mt-2(@click="add")
           i.fa.fa-plus
       .control(v-if="props.fact")
-        input.input(v-model="props.fact.description" @keyup="change" placeholder="Небольшой факт")
+        input.input(v-model="props.fact.description" v-focus @keyup="change" placeholder="Небольшой факт")
+      .control(v-if="props.fact")
+        button.button(@click="save")
+          i.fa.fa-check
+
     .is-flex.is-flex-direction-column-reverse
       div(v-for="(fact, index) in props.node.facts" :key="index")
         span.pr-1 {{fact.description}}

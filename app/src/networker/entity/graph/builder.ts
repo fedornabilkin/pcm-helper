@@ -46,7 +46,9 @@ export class LinkBuilder extends MainBuilder {
     this.entity.source = data.source
     this.entity.target = data.target
     this.entity.distance = data.distance
-    this.entity.stroke = data.stroke
+    if (data.stroke) {
+      this.entity.stroke = data.stroke
+    }
   }
 }
 

@@ -12,7 +12,6 @@ import {GraphService} from "@/networker/service/graphService.ts";
 import {NetworkService} from "@/networker/service/networkService.ts";
 import NodeCard from "@/networker/components/NodeCard.vue";
 import LinkCard from "@/networker/components/LinkCard.vue";
-import {Fact} from "@/networker/entity/graph/Fact.ts";
 
 const router = useRouter()
 let networkId = ref(0)
@@ -22,7 +21,6 @@ if(router.currentRoute.value.params.id) {
 let graphService = new GraphService({storeId: networkId.value});
 let networkService = new NetworkService({storeId: networkId.value});
 
-const nodes = ref(graphService.nodes);
 const links = ref(graphService.links);
 const funcCircle = ref(graphService.funcCircles);
 const networks = ref(networkService.networks);
@@ -31,9 +29,7 @@ watch(
     () => router.currentRoute.value.params.id,
     () => {
       networkId.value = Number(router.currentRoute.value.params.id) ?? 0
-      currentNode.value = undefined;
       graphService = new GraphService({storeId: networkId.value});
-      nodes.value = graphService.nodes
       links.value = graphService.links
       funcCircle.value = graphService.funcCircles
       reRender()
@@ -42,8 +38,6 @@ watch(
 
 
 const currentNetwork = ref<Network | undefined>(networkService.findNetwork(networkId.value));
-const currentNode = ref<Node | undefined>(undefined);
-const currentFact = ref<Fact | undefined>(undefined);
 
 const isLoading = ref(false)
 const isSaved = ref(false)
@@ -53,7 +47,7 @@ const draw: DrawNetwork = new DrawNetwork({
   dto: graphService.toDTO(),
   box: {w:600,h:450},
   cbClickNode: (e: any, d: Node): void => {
-    currentNode.value = d
+    graphService.setCurrentNode(d)
   },
   cbSimulationEnd: (): void => {saveAll()}
 })
@@ -73,7 +67,6 @@ const saveAll = (): void => {
   isLoading.value = false
   isSaved.value = true
 
-  nodes.value = graphService.nodes
   links.value = graphService.links
   funcCircle.value = graphService.funcCircles
 
@@ -86,27 +79,16 @@ const change = (): void => {
 }
 
 const addNode = (): void => {
-  currentNode.value = graphService.addNode();
+  graphService.addNode();
   reRender()
 }
 
 const removeNode = (): void => {
-  if (currentNode.value) {
-    graphService.removeNode(currentNode.value);
-    currentNode.value = undefined;
-    reRender();
-  }
+  graphService.removeNode(graphService.getCurrentNode());
+  reRender();
 }
 
-const addLink = (node: Node): void => {
-  if (currentNode.value) {
-    graphService.addLink(currentNode.value, node);
-    reRender();
-  }
-}
-
-const removeLink = (link: Link): void => {
-  graphService.removeLink(link);
+const changeLink = (): void => {
   reRender();
 }
 
@@ -133,19 +115,8 @@ const switchNetwork = (item: Network): void => {
   router.push({params: {id: item.id}})
 }
 
-const addFact = (): void => {
-  if (currentNode.value) {
-    currentFact.value = graphService.addFact(currentNode.value)
-    reRender();
-  }
-}
-
-const removeFact = (fact: Fact): void => {
-  if (currentNode.value) {
-    graphService.removeFact(currentNode.value, fact)
-    currentFact.value = undefined
-    reRender();
-  }
+const changeFact = (): void => {
+  reRender();
 }
 
 </script>
@@ -168,17 +139,13 @@ const removeFact = (fact: Fact): void => {
         .saved(v-if="isSaved") Сохранено {{ new Date() }}
     .column.is-half-tablet
       setting-graph.setting-graph(
-        :current-node="currentNode"
-        :current-fact="currentFact"
-        :nodes="nodes"
+        :graph-service="graphService"
         :links="links"
         @change="change"
         @addNode="addNode"
         @removeNode="removeNode"
-        @addLink="addLink"
-        @removeLink="removeLink"
-        @addFact="addFact"
-        @removeFact="removeFact"
+        @changeLink="changeLink"
+        @changeFact="changeFact"
       )
 
 
