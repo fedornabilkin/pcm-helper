@@ -29,8 +29,8 @@ export class DrawNetwork {
   labels: any;
   simulation: any;
 
-  cbClickNode = (e: any, d: Node) => {}
-  cbClickLink = (e: any, d: Node) => {}
+  clickNode = (e: any, d: Node) => {}
+  clickLink = (e: any, d: Node) => {}
   cbSimulationEnd = () => {}
 
   constructor(config: any = {}) {
@@ -134,7 +134,7 @@ export class DrawNetwork {
       .style("fill", (d: Node): string => d.getFill())
       .style("stroke", (d: Node): string => d.getStroke())
       .call(this.drag(this.simulation))
-      .on('click', this.cbClickNode)
+      .on('click', this.clickNode)
     return this;
   }
 
@@ -144,7 +144,7 @@ export class DrawNetwork {
       .data(this.dto.getLinks(), d => d.id)
       .join("line")
       .style("stroke", (d: Link): string => d.getStroke())
-      .on('click', this.cbClickLink)
+      .on('click', this.clickLink)
     return this;
   }
 

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import {PcmEntity} from "@/networker/entity/graph/pcm.ts";
+
 const props = defineProps(['node'])
 const emit = defineEmits(['change', 'remove'])
 
@@ -14,18 +16,19 @@ const remove = (): void => {
   emit('remove')
 }
 
-const setFill = (filter: any): void => {
-  props.node.fill = filter.color
+const setFill = (pcm: any): void => {
+  props.node.setPcm(pcm)
   change()
 }
 
 const filters = [
-  {name: 'logic', label: 'Логик', class: 'is-info', color: '#479df8'},
-  {name: 'persistent', label: 'Упорный', class: 'is-link', color: '#9d3cf1'},
-  {name: 'soulful', label: 'Душевный', class: 'is-primary', color: '#ef8f37'},
-  {name: 'dreamer', label: 'Мечтатель', class: 'is-success', color: '#9d6436'},
-  {name: 'rebel', label: 'Бунтарь', class: 'is-warning', color: '#edda52'},
-  {name: 'activist', label: 'Деятель', class: 'is-danger', color: '#e69492'},
+  new PcmEntity({filter:{name: 'logic', label: 'Логик', class: 'is-info', color: '#479df8'}}),
+  new PcmEntity({filter:{name: 'persistent', label: 'Упорный', class: 'is-link', color: '#9d3cf1'}}),
+  new PcmEntity({filter:{name: 'soulful', label: 'Душевный', class: 'is-primary', color: '#ef8f37'}}),
+  new PcmEntity({filter:{name: 'dreamer', label: 'Мечтатель', class: 'is-success', color: '#9d6436'}}),
+  new PcmEntity({filter:{name: 'rebel', label: 'Бунтарь', class: 'is-warning', color: '#edda52'}}),
+  new PcmEntity({filter:{name: 'activist', label: 'Деятель', class: 'is-danger', color: '#e69492'}}),
+  new PcmEntity({filter:{name: 'none', label: '', class: 'is-dark', color: '#a4b6b2'}}),
 ]
 
 </script>
@@ -51,13 +54,14 @@ const filters = [
           input(v-model="props.node.fixed" type="checkbox")
           | Закрепить
 
-    .field
-      .control
-        input(v-model="props.node.fill" type="color" @change="change")
-
     .tags
-      span.tag.is-hoverable(v-for="(filter, index) in filters" :key="index" :class="filter.class")
-        span(@click="setFill(filter)") {{ filter.label }}
+      input(v-model="props.node.fill" type="color" @change="change")
+      span.tag.is-hoverable(
+        v-for="(pcm, index) in filters"
+        :key="index"
+        :class="[pcm.filter.class, {['is-delete']: !pcm.filter.label}]"
+        @click="setFill(pcm)"
+      ) {{ pcm.filter.label }}
 
 </template>
 

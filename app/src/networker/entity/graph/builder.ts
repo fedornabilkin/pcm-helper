@@ -4,6 +4,7 @@ import { Link } from './link.ts';
 import { FunctionalCircle } from './functionalCircle.ts';
 import {Network} from "./network.ts";
 import {Fact} from "./Fact.ts";
+import {PcmEntity} from "./pcm.ts";
 
 export class NodeBuilder extends MainBuilder {
   entity: Node = new Node()
@@ -30,6 +31,25 @@ export class NodeBuilder extends MainBuilder {
       const factBuilder = new FactBuilder()
       this.entity.facts = factBuilder.createCollection(data.facts)
     }
+
+    if (data.pcm) {
+      const pcmBuilder = new PcmBuilder()
+      pcmBuilder.build(data.pcm)
+      this.entity.setPcm(pcmBuilder.getEntity())
+    }
+  }
+}
+
+export class PcmBuilder extends MainBuilder {
+  entity: PcmEntity = new PcmEntity()
+
+  createEntity(): PcmEntity {
+    return new PcmEntity();
+  }
+
+  build(data: any) {
+    super.build(data);
+    this.entity.filter = data.filter
   }
 }
 

@@ -45,8 +45,8 @@ const isSaved = ref(false)
 const graphId = 'nw-graph'
 const draw: DrawNetwork = new DrawNetwork({
   dto: graphService.toDTO(),
-  box: {w:600,h:450},
-  cbClickNode: (e: any, d: Node): void => {
+  box: {w:600,h:600},
+  clickNode: (e: any, d: Node): void => {
     graphService.setCurrentNode(d)
   },
   cbSimulationEnd: (): void => {saveAll()}

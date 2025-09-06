@@ -29,7 +29,6 @@ const add = (): void => {
 
 <template lang="pug">
   div
-    .mb-1 {{props.node.getName()}}
     .field.has-addons
       .control
         button.button.mt-2(@click="add")

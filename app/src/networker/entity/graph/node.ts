@@ -1,11 +1,13 @@
 import MainEntity from "../../../core/builder/mainEntity.ts";
 import {Fact} from "./Fact.ts";
+import {PcmEntity} from "./pcm.ts";
 
 export class Node extends MainEntity{
   id: number|undefined = undefined;
   name: string = ''
   description: string = ''
   facts: Fact[] = []
+  pcm: PcmEntity;
   lead: boolean = false
 
   x: number = 150
@@ -31,6 +33,11 @@ export class Node extends MainEntity{
     return this.fixed
   }
 
+  setPcm(pcm: PcmEntity): void {
+    this.fill = pcm.filter.color
+    this.pcm = pcm
+  }
+
   isMain(): boolean {
     return this.id === 1
   }
@@ -40,14 +47,14 @@ export class Node extends MainEntity{
   }
 
   getFill(): string {
-    return this.isMain() ? this.fillMain : this.fill
+    return this.fill
   }
 
   getStroke(): string {
-    return this.isMain() ? this.strokeMain : this.stroke
+    return this.stroke
   }
 
-  getPosition() {
+  getPosition(): any {
     return {x: this.x, y: this.y}
   }
 }

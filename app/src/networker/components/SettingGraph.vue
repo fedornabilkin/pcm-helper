@@ -7,7 +7,7 @@ import {Fact as EntityFact} from "@/networker/entity/graph/Fact.ts"
 
 const props = defineProps(['links', 'circle', 'graphService'])
 const emit = defineEmits([
-  'change',
+  'change', 'close',
   'addNode', 'removeNode',
   'changeLink',
   'changeFact'
@@ -65,6 +65,12 @@ const removeFact = (fact: EntityFact): void => {
   currentFact.value = undefined
   emit('changeFact')
 }
+
+const close = (): void => {
+  currentNode.value = undefined
+  currentFact.value = undefined
+  emit('close')
+}
 </script>
 
 <template lang="pug">
@@ -72,6 +78,9 @@ const removeFact = (fact: EntityFact): void => {
     button.button.mb-2(@click="addNode") Добавить
     .is-pulled-right Контактов: {{ props.graphService.getNodesCount() }}
   .panel(v-if="currentNode")
+    .panel-heading {{ currentNode.getName() }}
+      button.button.is-pulled-right(@click="close")
+        i.fa.fa-close
     .panel-tabs
       a(:class="{'is-active': activeTab === 1}" @click="setActiveTab(1)")
         i.fa.fa-user

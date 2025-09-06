@@ -89,7 +89,6 @@ const colors = [
 <template lang="pug">
   .columns.is-multiline
     .column
-      .mb-1 {{props.node.getName()}}
       .field.is-grouped.is-grouped-multiline
         template(v-for="(link, index) in props.links")
           .control(v-if="isActiveLink(link)")
