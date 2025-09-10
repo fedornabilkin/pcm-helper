@@ -1,9 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import TagList from "@/pcm/components/TagList.vue";
 
 const props = defineProps(['item'])
 const emit = defineEmits(['openModal'])
 const item = props.item
+
+const personalityType = (item: any): string => {
+  if (item.name === 'logic') {
+    return `${item.personalityType} 1,2 #`
+  }
+  return item.personalityType
+}
 
 const bgCard = (item) => {
   const bg = 'has-background-' + item.color.bulmaName
@@ -38,7 +45,7 @@ const openModal = (item, type) => {
 <template lang="pug">
   .card(:class="item.name")
     header.card-header(:class="bgCard(item)")
-      p.card-header-title {{ item.personalityType }}
+      p.card-header-title {{ personalityType(item) }}
       .card-header-icon
         span.icon
           i.fa-xl(:class="headerIcon(item)" style="color:white" aria-hidden='true')

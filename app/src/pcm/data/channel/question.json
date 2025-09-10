@@ -2,7 +2,7 @@
   "initiator": "Компьютер",
   "recipient": "Компьютер",
   "filter": {
-    "use": ["logic","dreamer"],
+    "use": ["logic","persistent"],
     "ignore": ["activist"]
   },
   "title": "Вопросительный канал",

@@ -3,7 +3,7 @@
   "recipient": "Эмотер",
   "filter": {
     "use": ["rebel"],
-    "ignore": ["persistent","logic","rebel","soulful","dreamer"]
+    "ignore": ["persistent","logic","activist","soulful","dreamer"]
   },
   "title": "Эмоциональный канал",
   "description": "Направлен на то, чтобы вызвать непосредственную реакцию собеседника. Оба собеседника активируют часть личности эмотер и спонтанно реагируют.",
