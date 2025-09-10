@@ -4,6 +4,7 @@ import { DataTransfer } from './dataTransfer.ts';
 import { FunctionalCircle } from '../entity/graph/functionalCircle.ts';
 import { Link } from '../entity/graph/link.ts';
 import { Node } from '../entity/graph/node.ts';
+import {ToolTip} from "./toolTip.ts";
 
 export class DrawNetwork {
   box: any = {
@@ -29,17 +30,23 @@ export class DrawNetwork {
   labels: any;
   simulation: any;
 
+  toolTipBox: any;
+  toolTip: ToolTip|null;
+
   clickNode = (e: any, d: Node) => {}
   clickLink = (e: any, d: Node) => {}
   cbSimulationEnd = () => {}
 
   constructor(config: any = {}) {
     Object.assign(this, config)
+    if (!this.toolTip) {
+      this.toolTip = new ToolTip()
+    }
   }
 
   render(element: HTMLElement) {
     this.drawContainer(element)
-      .drawGraph()
+      .drawGraph().initToolTip()
 
     this.funcCirclesGroup = this.container.append('g').attr('class', 'functional-circle')
     this.linksGroup = this.container.append('g').attr('class', 'links')
@@ -80,6 +87,11 @@ export class DrawNetwork {
       .on("zoom", (event: any) => {
         container.attr("transform", event.transform);
       })
+  }
+
+  initToolTip (): this {
+    this.toolTipBox = this.divElement.append('div').classed('tooltip', true)
+    return this
   }
 
   drawGraph(): this {
@@ -135,7 +147,39 @@ export class DrawNetwork {
       .style("stroke", (d: Node): string => d.getStroke())
       .call(this.drag(this.simulation))
       .on('click', this.clickNode)
+      .on('mouseover', (e,d): void => {this.mouseOver(e,d)})
+      .on('mousemove', (e,d): void => {this.mouseMove(e,d)})
+      .on('mouseleave', (e,d): void => {this.mouseLeave(e,d)})
     return this;
+  }
+
+  mouseOver(e: any, d: any): void {
+    if(this.toolTipBox) {
+      this.toolTipBox.classed('is-block', true).classed('box', true)
+    }
+    if(this.toolTip) {
+      const content: string = this.toolTip.createContent(d).getContent()
+      this.toolTipBox.html(content)
+    }
+  }
+
+  mouseMove(e: any, d: any): void {
+    if(this.toolTipBox && this.toolTip) {
+      this.toolTip.setPosition(e.layerX, e.layerY)
+      const [posX, posY] = this.toolTip.initPosition()
+
+      this.toolTipBox
+        .style('left', posX + 'px')
+        .style('top', posY + 'px')
+        .style('transform', 'translateY(-50%)')
+    }
+  }
+
+  mouseLeave(e: any, d: any): void {
+    if(this.toolTipBox) {
+      this.toolTipBox.classed('is-block', false)
+    }
+    this.toolTip?.clear()
   }
 
   drawLink(): this {
@@ -144,6 +188,7 @@ export class DrawNetwork {
       .data(this.dto.getLinks(), d => d.id)
       .join("line")
       .style("stroke", (d: Link): string => d.getStroke())
+      .style("stroke-width", (d: Link): number => d.getStrokeWidth())
       .on('click', this.clickLink)
     return this;
   }
@@ -153,7 +198,7 @@ export class DrawNetwork {
       .selectAll('text')
       .data(this.dto.getNodes(), d => d.id)
       .join("text")
-      .text((d: Node): string => d.getLabel())
+      .text((d: Node): string => d.getName())
       .attr('font-size', (d: Node): number => d.getFontSize())
     return this;
   }
@@ -173,8 +218,8 @@ export class DrawNetwork {
       .attr("cy", (d: Node): number => d.y)
 
     this.labels
-      .attr('dx', (d: Node): number => d.x)
-      .attr('dy', (d: Node): number => d.y)
+      .attr('dx', (d: Node): number => d.x + d.getRadius())
+      .attr('dy', (d: Node): number => d.y - d.getRadius() / 2)
 
     this.funcCircles
       .attr('cx', (d: any): number => this.scope[d.id].circle.x)

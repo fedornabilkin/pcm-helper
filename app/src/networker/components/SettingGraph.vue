@@ -26,6 +26,10 @@ const setActiveTab = (idx: number): void => {
   activeTab.value = idx
 }
 
+const filterClass = (item: Node): string => {
+  return item.pcm?.filter.class ?? ''
+}
+
 const change = (): void => {
   emit('change')
 }
@@ -77,7 +81,7 @@ const close = (): void => {
   .mr-1
     button.button.mb-2(@click="addNode") Добавить
     .is-pulled-right Контактов: {{ props.graphService.getNodesCount() }}
-  .panel(v-if="currentNode")
+  .panel(v-if="currentNode" :class="filterClass(currentNode)")
     .panel-heading {{ currentNode.getName() }}
       button.button.is-pulled-right(@click="close")
         i.fa.fa-close

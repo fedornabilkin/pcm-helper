@@ -16,9 +16,15 @@ export class Link extends MainEntity{
 
   distance: number = 150
   stroke: string = '#aaa'
+  strokeWidth: number = 1
+  status: boolean = false
 
   getStroke(): string {
     return this.stroke
+  }
+
+  getStrokeWidth(): number {
+    return this.status ? this.strokeWidth + 5 : this.strokeWidth
   }
 
   toJSON() {

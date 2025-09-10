@@ -1,6 +1,7 @@
 import MainEntity from "../../../core/builder/mainEntity.ts";
 import {Fact} from "./Fact.ts";
 import {PcmEntity} from "./pcm.ts";
+import {Link} from "./link.ts";
 
 export class Node extends MainEntity{
   id: number|undefined = undefined;
@@ -38,8 +39,20 @@ export class Node extends MainEntity{
     this.pcm = pcm
   }
 
-  isMain(): boolean {
-    return this.id === 1
+  isMyLink(link: Link, cb): boolean {
+    const source = this.isMyLinkAsSource(link)
+    const target = this.isMyLinkAsTarget(link)
+    if (source) {cb(link.target.id)}
+    if (target) {cb(link.source.id)}
+    return source || target
+  }
+
+  isMyLinkAsSource(link: Link): boolean {
+    return link.source.id === this.id
+  }
+
+  isMyLinkAsTarget(link: Link): boolean {
+    return link.target.id === this.id
   }
 
   getFontSize(): number {
@@ -51,10 +64,14 @@ export class Node extends MainEntity{
   }
 
   getStroke(): string {
-    return this.stroke
+    return this.fill
   }
 
   getPosition(): any {
     return {x: this.x, y: this.y}
+  }
+
+  getRadius(): number {
+    return this.r
   }
 }

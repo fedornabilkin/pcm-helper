@@ -12,6 +12,7 @@ import {GraphService} from "@/networker/service/graphService.ts";
 import {NetworkService} from "@/networker/service/networkService.ts";
 import NodeCard from "@/networker/components/NodeCard.vue";
 import LinkCard from "@/networker/components/LinkCard.vue";
+import {NodeToolTip} from "@/networker/graph/toolTip.ts";
 
 const router = useRouter()
 let networkId = ref(0)
@@ -46,6 +47,7 @@ const graphId = 'nw-graph'
 const draw: DrawNetwork = new DrawNetwork({
   dto: graphService.toDTO(),
   box: {w:600,h:600},
+  toolTip: new NodeToolTip(),
   clickNode: (e: any, d: Node): void => {
     graphService.setCurrentNode(d)
   },
@@ -162,4 +164,9 @@ const changeFact = (): void => {
 </template>
 
 <style>
+.graph-container .tooltip {
+  display: none;
+  position: absolute;
+  z-index: 10;
+}
 </style>

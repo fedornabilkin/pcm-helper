@@ -27,15 +27,9 @@ const isCurrentNode = (item: Node): boolean => {
 }
 
 const isActiveLink = (item: Link): boolean => {
-  const checkSource = item.source.id === props.node.id
-  const checkTarget = item.target.id === props.node.id
-  if (checkSource) {
-    unAvailableNodeIds.value.add(item.target.id)
-  }
-  if (checkTarget) {
-    unAvailableNodeIds.value.add(item.source.id)
-  }
-  return checkSource || checkTarget
+  return props.node.isMyLink(item, (second: number) => {
+    unAvailableNodeIds.value.add(second)
+  })
 }
 
 const isAvailableNode = (node: Node): boolean => {
@@ -79,51 +73,49 @@ const distance = [
 ]
 
 const colors = [
-  {name: 'red', label: '', color: '#ea3525'},
-  {name: 'green', label: '', color: '#397f24'},
-  {name: 'gray', label: '', color: '#818181'},
+  {name: 'red', label: 'r', color: '#ea3525'},
+  {name: 'green', label: 'g', color: '#397f24'},
+  {name: 'gray', label: 'x', color: '#818181'},
 ]
 
 </script>
 
 <template lang="pug">
-  .columns.is-multiline
-    .column
-      .field.is-grouped.is-grouped-multiline
-        template(v-for="(link, index) in props.links")
-          .control(v-if="isActiveLink(link)")
-            .tags.has-addons
-              span.tag.is-hoverable(:class="{'is-dark': index === activeLinkIndex}" :key="index" @click="setCurrentLink(link, index)") {{ link.source.getName() }} -> {{ link.target.getName() }}
-              span.tag.is-delete.is-hoverable(@click="remove(link)")
-      hr
-      .field.is-grouped.is-grouped-multiline
-        template(v-for="node in props.nodes")
-          .control(v-if="isAvailableNode(node)")
-            .tags.has-addons
-              span.tag(:class="{ 'is-dark': isCurrentNode(node) }") {{ node.getName() }}
-              span.tag.is-hoverable(v-if="!isCurrentNode(node)" @click="add(node)") +
-
-    .column(v-if="linkModel")
+  .is-block
+    .is-block(v-if="linkModel")
       .field.has-addons
         .control
           input.input(v-model="linkModel.distance" type='number' @change="change" min="50" max="1000" step="10")
         .control.is-expanded
           input.input(v-model="linkModel.stroke" type='color' @change="change")
-      .tags
+        .control(v-for="(color, index) in colors" :key="index")
+          button.button(@click="setStroke(color)" :class="color.name") {{color.label}}
+      .tags.has-addons
+        input.tag(v-model="linkModel.status" type="checkbox" @change="change")
         span.tag.is-hoverable(v-for="(dist, index) in distance" :key="index")
-          span(@click="setDistance(dist)") {{ dist.label }}
+          span(@click="setDistance(dist)") {{dist.label}}
 
-      .tags
-        span.tag.is-hoverable(
-          v-for="(color, index) in colors"
-          :key="index"
-          :class="color.name"
-          @click="setStroke(color)"
-        )
+      hr
+    .columns.is-multiline
+      .column
+        .field.is-grouped.is-grouped-multiline
+          template(v-for="(link, index) in props.links")
+            .control(v-if="isActiveLink(link)")
+              .tags.has-addons
+                span.tag.is-hoverable(:class="{'is-dark': index === activeLinkIndex}" :key="index" @click="setCurrentLink(link, index)") {{ link.source.getName() }} -> {{ link.target.getName() }}
+                span.tag.is-delete.is-hoverable(@click="remove(link)")
+
+      .column
+        .field.is-grouped.is-grouped-multiline
+          template(v-for="node in props.nodes")
+            .control(v-if="isAvailableNode(node)")
+              .tags.has-addons
+                span.tag(:class="{ 'is-dark': isCurrentNode(node) }") {{ node.getName() }}
+                span.tag.is-hoverable(v-if="!isCurrentNode(node)" @click="add(node)") +
 </template>
 
 <style scoped>
-.tags .tag.red {background-color: #ea3525}
-.tags .tag.green {background-color: #397f24}
-.tags .tag.gray {background-color: #818181}
+button.button.red {background-color: #ea3525; color: #ea3525;}
+button.button.green {background-color: #397f24; color: #397f24;}
+button.button.gray {background-color: #818181; color: #818181;}
 </style>
