@@ -1,25 +1,21 @@
-import { Link } from '../entity/graph/link.ts';
-import { Node } from '../entity/graph/node.ts';
-import { FunctionalCircle } from '../entity/graph/functionalCircle.ts';
-
 export class DataTransfer {
-  circles: FunctionalCircle[] = []
-  nodes: Node[] = []
-  links: Link[] = []
+  circles: any = []
+  nodes: any = []
+  links: any = []
 
   constructor(config: any = {}) {
     Object.assign(this, config)
   }
 
-  getCircles(): FunctionalCircle[] {
+  getCircles(): any {
     return this.circles
   }
 
-  getNodes(): Node[] {
+  getNodes(): any {
     return this.nodes
   }
 
-  getLinks(): Link[] {
+  getLinks(): any {
     return this.links
   }
 }

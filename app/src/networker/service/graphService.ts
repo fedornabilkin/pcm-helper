@@ -5,6 +5,7 @@ import { useGraphStore } from "../composable/graphStore.ts";
 import { DataTransfer } from "../graph/dataTransfer.ts";
 import {MainService} from "./mainService.ts";
 import {Fact} from "../entity/graph/Fact.ts";
+import {IFileAdapter} from "./transfer/fileAdapter.ts";
 
 export class GraphService extends MainService{
   private storeId: number = 0
@@ -13,6 +14,7 @@ export class GraphService extends MainService{
   private circleBuilder: CircleBuilder;
   private factBuilder: FactBuilder;
   private graphStore: any;
+  private fileAdapter: IFileAdapter
   currentNode: Node;
   private currentFact: Fact;
 
@@ -33,9 +35,18 @@ export class GraphService extends MainService{
 
     this.graphStore = useGraphStore(this.storeId);
 
-    this.nodes = this.nodeBuilder.createCollection(this.graphStore.nodes.value);
-    this.links = this.linkBuilder.createCollection(this.graphStore.links.value);
-    this.funcCircles = this.circleBuilder.createCollection(this.graphStore.funcCircles.value);
+    this.importCollections(this.graphStore.nodes.value, this.graphStore.links.value, this.graphStore.funcCircles.value)
+  }
+
+  importCollections(nodes, links, circles): void {
+    this.nodes = this.nodeBuilder.createCollection(nodes);
+    this.links = this.linkBuilder.createCollection(links);
+    this.funcCircles = this.circleBuilder.createCollection(circles);
+  }
+
+  setFileAdapter(adapter: IFileAdapter): this {
+    this.fileAdapter = adapter
+    return this
   }
 
   setStoreId(id: number): void {
@@ -122,11 +133,24 @@ export class GraphService extends MainService{
     });
   }
 
+  fromDTO(dto: DataTransfer): void {
+    this.importCollections(dto.nodes, dto.links, dto.circles)
+  }
+
   saveAll(): void {
     this.graphStore.nodes.value = this.nodes;
     this.graphStore.links.value = this.links;
     this.graphStore.funcCircles.value = this.funcCircles;
     this.graphStore.saveAll();
+  }
+
+  export(): string | ArrayBuffer {
+    return this.fileAdapter.export(this.toDTO());
+  }
+
+  import(data: string | ArrayBuffer): void {
+    const dto = this.fileAdapter.import(data);
+    this.fromDTO(dto);
   }
 
   // clearAll(): void {

@@ -121,6 +121,10 @@ const changeFact = (): void => {
   reRender();
 }
 
+const importNetwork = (): void => {
+  reRender();
+}
+
 </script>
 
 <template lang="pug">
@@ -148,6 +152,7 @@ const changeFact = (): void => {
         @removeNode="removeNode"
         @changeLink="changeLink"
         @changeFact="changeFact"
+        @importNetwork="importNetwork"
       )
 
 
