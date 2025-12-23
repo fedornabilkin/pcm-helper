@@ -1,10 +1,11 @@
-import {NodeBuilder, LinkBuilder, CircleBuilder, FactBuilder} from "../entity/graph/builder";
+import {NodeBuilder, LinkBuilder, CircleBuilder, FactBuilder, TagBuilder} from "../entity/graph/builder";
 import { Node } from "../entity/graph/node";
 import { Link } from "../entity/graph/link";
+import {Fact} from "../entity/graph/Fact.ts";
+import {Tag} from "../entity/graph/tag.ts";
 import { useGraphStore } from "../composable/graphStore.ts";
 import { DataTransfer } from "../graph/dataTransfer.ts";
 import {MainService} from "./mainService.ts";
-import {Fact} from "../entity/graph/Fact.ts";
 import {IFileAdapter} from "./transfer/fileAdapter.ts";
 
 export class GraphService extends MainService{
@@ -13,6 +14,7 @@ export class GraphService extends MainService{
   private linkBuilder: LinkBuilder;
   private circleBuilder: CircleBuilder;
   private factBuilder: FactBuilder;
+  private tagBuilder: TagBuilder;
   private graphStore: any;
   private fileAdapter: IFileAdapter
   currentNode: Node;
@@ -20,6 +22,7 @@ export class GraphService extends MainService{
 
   nodes: Node[] = [];
   links: Link[] = [];
+  tags: Tag[] = [];
   funcCircles: any[] = [];
 
   cbActiveNode = (node: Node) => {}
@@ -32,16 +35,23 @@ export class GraphService extends MainService{
     this.linkBuilder = new LinkBuilder();
     this.circleBuilder = new CircleBuilder();
     this.factBuilder = new FactBuilder();
+    this.tagBuilder = new TagBuilder();
 
     this.graphStore = useGraphStore(this.storeId);
 
-    this.importCollections(this.graphStore.nodes.value, this.graphStore.links.value, this.graphStore.funcCircles.value)
+    this.importCollections(
+      this.graphStore.nodes.value,
+      this.graphStore.links.value,
+      this.graphStore.funcCircles.value,
+      this.graphStore.tags.value
+    )
   }
 
-  importCollections(nodes, links, circles): void {
+  importCollections(nodes, links, circles, tags): void {
     this.nodes = this.nodeBuilder.createCollection(nodes);
     this.links = this.linkBuilder.createCollection(links);
     this.funcCircles = this.circleBuilder.createCollection(circles);
+    this.tags = this.tagBuilder.createCollection(tags);
   }
 
   setFileAdapter(adapter: IFileAdapter): this {
@@ -54,6 +64,8 @@ export class GraphService extends MainService{
   }
 
   setCurrentNode(node: Node|undefined): void {
+    this.currentNode?.toggleActive()
+    node?.toggleActive()
     this.currentNode = node
     this.cbActiveNode(node)
   }
@@ -125,6 +137,29 @@ export class GraphService extends MainService{
     if (index !== -1) node.facts.splice(index, 1);
   }
 
+  addTag(tag: any): Tag {
+    tag.id = this.nextId(this.tags)
+    this.tagBuilder.build(tag);
+    const entity = this.tagBuilder.getEntity();
+    this.tags.push(entity);
+    return entity;
+  }
+
+  removeTag(tag: Tag) {
+    const index = this.tags.findIndex(t => t.id === tag.id);
+    if (index !== -1) {
+      this.tags.splice(index, 1);
+    }
+  }
+
+  bindTag(tag: Tag, node: Node) {
+    node.tags.push(tag.id)
+  }
+
+  unbindTag(tag: Tag, node: Node) {
+    node.tags = node.tags.filter(id => id !== tag.id)
+  }
+
   toDTO(): DataTransfer {
     return new DataTransfer({
       nodes: this.nodes,
@@ -141,6 +176,7 @@ export class GraphService extends MainService{
     this.graphStore.nodes.value = this.nodes;
     this.graphStore.links.value = this.links;
     this.graphStore.funcCircles.value = this.funcCircles;
+    this.graphStore.tags.value = this.tags;
     this.graphStore.saveAll();
   }
 

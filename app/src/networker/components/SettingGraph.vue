@@ -5,13 +5,14 @@ import {ref} from "vue";
 import Fact from "@/networker/components/form/Fact.vue";
 import {Fact as EntityFact} from "@/networker/entity/graph/Fact.ts"
 import {JsonFileAdapter} from "@/networker/service/transfer/fileAdapter.ts";
+import Tag from "@/networker/components/form/Tag.vue";
+import {Tag as EntityTag} from "@/networker/entity/graph/tag.ts"
 
 const props = defineProps(['links', 'circle', 'graphService'])
 const emit = defineEmits([
   'change', 'close',
   'addNode', 'removeNode',
-  'changeLink',
-  'changeFact',
+  'changeLink', 'changeFact', 'changeTag',
   'exportNetwork', 'importNetwork',
 ])
 
@@ -72,10 +73,34 @@ const removeFact = (fact: EntityFact): void => {
   emit('changeFact')
 }
 
+const addTag = (tag: any): void => {
+  props.graphService.addTag(tag)
+  emit('changeTag')
+}
+
+const removeTag = (tag: EntityTag): void => {
+  props.graphService.removeTag(tag)
+  emit('changeTag')
+}
+
+const bindTag = (tag: EntityTag): void => {
+  props.graphService.bindTag(tag, currentNode.value)
+  emit('changeTag')
+}
+
+const unbindTag = (tag: EntityTag): void => {
+  props.graphService.unbindTag(tag, currentNode.value)
+  emit('changeTag')
+}
+
 const close = (): void => {
   currentNode.value = undefined
   currentFact.value = undefined
   emit('close')
+}
+
+const filterTag = (tag: Tag): void => {
+  //console.log(tag)
 }
 
 const exportNetwork = (): void => {
@@ -91,7 +116,7 @@ const exportNetwork = (): void => {
   emit('exportNetwork')
 }
 
-const importNetwork = (event): void => {
+const importNetwork = (event: any): void => {
   const file = event.target.files[0];
   const reader = new FileReader();
 
@@ -113,6 +138,10 @@ const importNetwork = (event): void => {
 </script>
 
 <template lang="pug">
+  //.field.is-grouped.is-grouped-multiline
+    template(v-for="tag in props.graphService.tags")
+      .control
+        span.tag.is-hoverable(@click="filterTag(tag)") {{ tag.name }}
   .mr-1
     button.button.mb-2(@click="addNode")
       i.fa.fa-plus
@@ -131,6 +160,8 @@ const importNetwork = (event): void => {
         i.fa.fa-link
       a(:class="{'is-active': activeTab === 3}" @click="setActiveTab(3)")
         i.fa.fa-file
+      a(:class="{'is-active': activeTab === 4}" @click="setActiveTab(4)")
+        i.fa.fa-tag
 
     .panel-block(v-if="activeTab === 1")
       Node(
@@ -157,6 +188,16 @@ const importNetwork = (event): void => {
         @add="addFact"
         @remove="removeFact"
         @save="saveFact"
+      )
+
+    .panel-block(v-if="activeTab === 4")
+      Tag(
+        :node="currentNode"
+        :tags="props.graphService.tags"
+        @bindTag="bindTag"
+        @unbindTag="unbindTag"
+        @add="addTag"
+        @remove="removeTag"
       )
 
 

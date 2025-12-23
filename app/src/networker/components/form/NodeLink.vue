@@ -8,7 +8,7 @@ const emit = defineEmits(['add', 'remove', 'change'])
 
 const linkModel = ref(undefined)
 const activeLinkIndex = ref(null)
-let unAvailableNodeIds = ref(new Set())
+const unAvailableNodeIds = ref(new Set())
 
 watch(() => props.node, () => {
   unAvailableNodeIds.value.clear()

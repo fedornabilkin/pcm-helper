@@ -15,7 +15,7 @@ export class DrawNetwork {
   dto: DataTransfer = new DataTransfer();
   scope: any = {extra: {}};
 
-  scale: any = {min: 0.1, max: 10}
+  scale: any = {min: 0.05, max: 5}
 
   divElement: any;
   container: any;
@@ -142,9 +142,10 @@ export class DrawNetwork {
       .selectAll("circle")
       .data(this.dto.getNodes(), d => d.id)
       .join("circle")
-      .attr("r", (d: Node): number => d.r)
+      .attr("r", (d: Node): number => d.getRadius())
       .style("fill", (d: Node): string => d.getFill())
       .style("stroke", (d: Node): string => d.getStroke())
+      .style("stroke-width", (d: Node): string => d.getStrokeWidth())
       .call(this.drag(this.simulation))
       .on('click', this.clickNode)
       .on('mouseover', (e,d): void => {this.mouseOver(e,d)})

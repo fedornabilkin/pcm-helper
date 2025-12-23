@@ -5,6 +5,7 @@ import { FunctionalCircle } from './functionalCircle.ts';
 import {Network} from "./network.ts";
 import {Fact} from "./Fact.ts";
 import {PcmEntity} from "./pcm.ts";
+import {Tag} from "./tag.ts";
 
 export class NodeBuilder extends MainBuilder {
   entity: Node = new Node()
@@ -25,6 +26,9 @@ export class NodeBuilder extends MainBuilder {
     this.entity.fy = data.fy
     if (data.fill) {
       this.entity.fill = data.fill
+    }
+    if (data.tags) {
+      this.entity.tags = data.tags
     }
 
     if (data.facts) {
@@ -116,5 +120,21 @@ export class FactBuilder extends MainBuilder {
     super.build(data);
     this.entity.id = data.id
     this.entity.description = data.description
+  }
+}
+
+export class TagBuilder extends MainBuilder {
+  entity: Tag = new Tag()
+
+  createEntity(): Tag {
+    return new Tag();
+  }
+
+  build(data: any) {
+    super.build(data);
+    this.entity.id = data.id
+    this.entity.name = data.name
+    this.entity.group = data.group
+    this.entity.color = data.color
   }
 }

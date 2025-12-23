@@ -5,6 +5,7 @@ export function useGraphStore(id: string) {
   const keyNodes = `${prefix}-graph_nodes`
   const keyLinks = `${prefix}-graph_links`
   const keyFuncCircles = `${prefix}-graph_funcCircles`
+  const keyTags = `${prefix}-graph_tags`
   const keyNetworkList = 'network-list'
   const {
     state: nodes, save: saveNodes, clear: clearNodes
@@ -28,6 +29,10 @@ export function useGraphStore(id: string) {
   ]);
 
   const {
+    state: tags, save: saveTags, clear: clearTags
+  } = useLocalStore(keyTags, []);
+
+  const {
     state: networks, save: saveNetworks, clear: clearNetworks
   } = useLocalStore(keyNetworkList, []);
 
@@ -35,6 +40,7 @@ export function useGraphStore(id: string) {
     saveNodes();
     saveLinks();
     saveFuncCircles();
+    saveTags();
     // saveNetworks();
   }
 
@@ -42,6 +48,7 @@ export function useGraphStore(id: string) {
     clearNodes();
     clearLinks();
     clearFuncCircles();
+    clearTags();
     clearNetworks();
   }
 
@@ -49,6 +56,7 @@ export function useGraphStore(id: string) {
     nodes,
     links,
     funcCircles,
+    tags,
     saveAll,
     clearAll,
     networks,

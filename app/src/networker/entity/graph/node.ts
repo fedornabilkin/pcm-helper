@@ -2,12 +2,14 @@ import MainEntity from "../../../core/builder/mainEntity.ts";
 import {Fact} from "./Fact.ts";
 import {PcmEntity} from "./pcm.ts";
 import {Link} from "./link.ts";
+import {Tag} from "./tag.ts";
 
 export class Node extends MainEntity{
   id: number|undefined = undefined;
   name: string = ''
   description: string = ''
   facts: Fact[] = []
+  tags: number[] = []
   pcm: PcmEntity;
   lead: boolean = false
 
@@ -19,8 +21,10 @@ export class Node extends MainEntity{
   r: number = 17
   fill: string = '#9eb6b1'
   stroke: string = '#86b3a9'
+  strokeWidth: number = 2
   fillMain: string = '#078a76'
-  strokeMain: string = '#036c5c'
+  strokeActive: string = '#f40404'
+  active: boolean = false
 
   getLabel(): string {
     return `${this.id} ${this.name}`
@@ -39,6 +43,10 @@ export class Node extends MainEntity{
     this.pcm = pcm
   }
 
+  toggleActive() {
+    this.active = !this.active
+  }
+
   isMyLink(link: Link, cb): boolean {
     const source = this.isMyLinkAsSource(link)
     const target = this.isMyLinkAsTarget(link)
@@ -55,8 +63,16 @@ export class Node extends MainEntity{
     return link.target.id === this.id
   }
 
+  isMyTag(tag: Tag, cb: any): boolean {
+    if(this.tags.includes(tag.id)){
+      cb(tag.id)
+      return true
+    }
+    return false
+  }
+
   getFontSize(): number {
-    return 12
+    return !this.active ? 16 : this.r * 2
   }
 
   getFill(): string {
@@ -64,7 +80,11 @@ export class Node extends MainEntity{
   }
 
   getStroke(): string {
-    return this.fill
+    return !this.active ? this.fill : this.strokeActive
+  }
+
+  getStrokeWidth(): string {
+    return !this.active ? this.strokeWidth : this.strokeWidth * 5
   }
 
   getPosition(): any {
@@ -72,6 +92,6 @@ export class Node extends MainEntity{
   }
 
   getRadius(): number {
-    return this.r
+    return !this.active ? this.r : this.r * 2.5
   }
 }

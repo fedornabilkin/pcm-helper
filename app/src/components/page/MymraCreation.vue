@@ -50,6 +50,7 @@ const draw: DrawNetwork = new DrawNetwork({
   toolTip: new NodeToolTip(),
   clickNode: (e: any, d: Node): void => {
     graphService.setCurrentNode(d)
+    reRender()
   },
   cbSimulationEnd: (): void => {saveAll()}
 })
@@ -58,10 +59,11 @@ onMounted((): void => {
   draw.render(document.getElementById(graphId) as HTMLElement)
 })
 
+const debounceReRender = graphService.createDebounce()
 const reRender = (): void => {
   isLoading.value = true
   draw.dto = graphService.toDTO();
-  draw.reRender()
+  debounceReRender(() => {draw.reRender()}, 750)
 }
 
 const saveAll = (): void => {
@@ -75,9 +77,9 @@ const saveAll = (): void => {
   setTimeout(() => {isSaved.value = false}, 5000)
 }
 
-const debounce = graphService.createDebounce()
+const debounceChange = graphService.createDebounce()
 const change = (): void => {
-  debounce(() => {reRender()}, 700)
+  debounceChange(() => {reRender()}, 700)
 }
 
 const addNode = (): void => {
@@ -121,6 +123,10 @@ const changeFact = (): void => {
   reRender();
 }
 
+const changeTag = (): void => {
+  saveAll();
+}
+
 const importNetwork = (): void => {
   reRender();
 }
@@ -152,6 +158,7 @@ const importNetwork = (): void => {
         @removeNode="removeNode"
         @changeLink="changeLink"
         @changeFact="changeFact"
+        @changeTag="changeTag"
         @importNetwork="importNetwork"
       )
 

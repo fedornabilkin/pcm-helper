@@ -9,7 +9,7 @@ export class Distance {
 }
 
 export class Link extends MainEntity{
-  id: number
+  id: number = 0
   source: number|Node = 0
   target: number|Node = 0
   // distance: Distance = new Distance()
