@@ -1,6 +1,6 @@
-<script setup lang="ts">
-import {Node} from "../../entity/graph/node.ts";
-import {Link} from "../../entity/graph/link.ts";
+﻿<script setup lang="ts">
+import {Node} from "../../entity/graph/node";
+import {Link} from "../../entity/graph/link";
 import {ref, watch} from "vue";
 
 const props = defineProps(['node', 'nodes', 'links'])

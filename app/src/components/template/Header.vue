@@ -1,7 +1,11 @@
-<script setup>
-import {ref} from "vue";
+<script setup lang="ts">
+import {computed, ref} from "vue";
+import {useRoute} from "vue-router";
 
 const open = ref(false)
+const route = useRoute()
+const isCompactHeader = computed(() => route.meta.compactHeader === true)
+const showPageTitle = computed(() => route.meta.hidePageTitle !== true)
 
 const toggleNavigation = () => {
   open.value = !open.value
@@ -78,30 +82,62 @@ const getTitle = (r) => {
 
 </script>
 <template lang="pug">
-nav.navbar(role='navigation' aria-label='main navigation')
-  //.container
-  .navbar-brand
-    a.navbar-item(href='/')
-      img(src='/logo.png' alt='pcmhelper.ru')
-  //  a.navbar-burger.burger(role='button' :class="{ 'is-active': open }" aria-label='menu' aria-expanded='false' @click='toggleNavigation')
-  //    span(aria-hidden='true')
-  //    span(aria-hidden='true')
-  //    span(aria-hidden='true')
-  //.navbar-menu(:class="{ 'is-active': open }")
-  //  .navbar-end
-      //.navbar-item
-        ShareButtons
+.app-header(:class="{'is-compact': isCompactHeader}")
+  nav.navbar(role='navigation' aria-label='main navigation')
+    //.container
+    .navbar-brand
+      a.navbar-item(href='/')
+        img(src='/logo.png' alt='pcmhelper.ru')
+    //  a.navbar-burger.burger(role='button' :class="{ 'is-active': open }" aria-label='menu' aria-expanded='false' @click='toggleNavigation')
+    //    span(aria-hidden='true')
+    //    span(aria-hidden='true')
+    //    span(aria-hidden='true')
+    //.navbar-menu(:class="{ 'is-active': open }")
+    //  .navbar-end
+        //.navbar-item
+          ShareButtons
 
-.tabs.is-centered.is-boxed
-  ul
-    li(v-for="item in menuList" :key="item.name" :class="{'is-active': currentRoute($route, item)}")
-      router-link(:to="{name: item.route.name}")
-        span.icon
-          i.fa(:class="item.icon" aria-hidden="true")
-        span.is-hidden-mobile.is-hidden-desktop {{ item.anchor.short }}
-        span.is-hidden-touch {{ item.anchor.full }}
-.container.mb-3
-  h1.title.is-4 {{ getTitle($route) }}
+  .tabs.is-centered.is-boxed
+    ul
+      li(v-for="item in menuList" :key="item.name" :class="{'is-active': currentRoute($route, item)}")
+        router-link(:to="{name: item.route.name}")
+          span.icon
+            i.fa(:class="item.icon" aria-hidden="true")
+          span.is-hidden-mobile.is-hidden-desktop {{ item.anchor.short }}
+          span.is-hidden-touch {{ item.anchor.full }}
+  .container.mb-3(v-if="showPageTitle")
+    h1.title.is-4 {{ getTitle($route) }}
 </template>
 
-<style></style>
+<style scoped>
+.app-header.is-compact .navbar {
+  display: inline-flex;
+  min-height: 2.25rem;
+  vertical-align: top;
+}
+
+.app-header.is-compact .navbar-brand,
+.app-header.is-compact .navbar-item {
+  min-height: 2.25rem;
+}
+
+.app-header.is-compact .navbar-item {
+  padding-bottom: 0.2rem;
+  padding-top: 0.2rem;
+}
+
+.app-header.is-compact .navbar-brand img {
+  max-height: 1.75rem;
+}
+
+.app-header.is-compact .tabs {
+  display: inline-flex;
+  margin-bottom: 0;
+  vertical-align: top;
+}
+
+.app-header.is-compact .tabs a {
+  padding-bottom: 0.3rem;
+  padding-top: 0.3rem;
+}
+</style>

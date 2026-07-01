@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import {ref} from "vue";
-import {Network} from "@/networker/entity/graph/network.ts";
+import {Network} from "@/networker/entity/graph/network";
 
 const props = defineProps(['currentNetwork', 'networks'])
 const emit = defineEmits([

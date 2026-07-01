@@ -1,4 +1,4 @@
-import {useLocalStore} from "../../core/composable/store/localStore.ts";
+﻿import {useLocalStore} from "../../core/composable/store/localStore";
 
 export function useNetworkStore() {
   const keyNetworkList = 'network-list'

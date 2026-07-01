@@ -1,5 +1,5 @@
-import {Node} from "../entity/graph/node.ts";
-import {Fact} from "../entity/graph/Fact.ts";
+﻿import {Node} from "../entity/graph/node";
+import {Fact} from "../entity/graph/Fact";
 
 interface IPosition {
   x: number, y: number, offsetX: number, offsetY: number

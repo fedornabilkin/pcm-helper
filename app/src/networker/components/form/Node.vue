@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import {PcmEntity} from "@/networker/entity/graph/pcm.ts";
+﻿<script setup lang="ts">
+import {PcmEntity} from "@/networker/entity/graph/pcm";
 
 const props = defineProps(['node'])
 const emit = defineEmits(['change', 'remove'])

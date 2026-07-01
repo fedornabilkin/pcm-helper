@@ -1,21 +1,23 @@
-export class DataTransfer {
-  circles: any = []
-  nodes: any = []
-  links: any = []
+import type {GraphLinkDTO, GraphNodeDTO, FunctionalCircleDTO, NetworkGraphDTO} from "@/networker/graph/types";
 
-  constructor(config: any = {}) {
+export class DataTransfer {
+  circles: FunctionalCircleDTO[] = []
+  nodes: GraphNodeDTO[] = []
+  links: GraphLinkDTO[] = []
+
+  constructor(config: NetworkGraphDTO = {}) {
     Object.assign(this, config)
   }
 
-  getCircles(): any {
+  getCircles(): FunctionalCircleDTO[] {
     return this.circles
   }
 
-  getNodes(): any {
+  getNodes(): GraphNodeDTO[] {
     return this.nodes
   }
 
-  getLinks(): any {
+  getLinks(): GraphLinkDTO[] {
     return this.links
   }
 }

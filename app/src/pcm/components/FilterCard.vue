@@ -52,7 +52,7 @@ const openModal = (item, type) => {
     .card-content
       .media
         .media-left
-          figure.image.is-128x128.is-skeleton
+          figure.image.is-128x128.filter-image
             img(:src="item.img.src" :alt="item.img.alt")
         .media-content
           .content
@@ -137,5 +137,10 @@ const openModal = (item, type) => {
   0% {transform: translateX(0)}
   50% {transform: translateX(50px)}
   100% {transform: translateX(0)}
+}
+
+.filter-image img {
+  border-radius: 6px;
+  object-fit: cover;
 }
 </style>

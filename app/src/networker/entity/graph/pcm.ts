@@ -1,4 +1,4 @@
-import MainEntity from "../../../core/builder/mainEntity.ts";
+﻿import MainEntity from "../../../core/builder/mainEntity";
 
 export class PcmEntity extends MainEntity {
   constructor(config = {}) {

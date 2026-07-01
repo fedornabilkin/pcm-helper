@@ -1,9 +1,9 @@
-// composables/useLocalStore.js
 import { ref } from "vue";
+import {parseJsonOrFallback} from "@/core/json/safeJson";
 
 export function useLocalStore(key: string, defaultValue: any = null) {
   const stored = localStorage.getItem(key);
-  const state = ref(stored ? JSON.parse(stored) : defaultValue);
+  const state = ref(parseJsonOrFallback(stored, defaultValue));
 
   function save() {
     localStorage.setItem(key, JSON.stringify(state.value));

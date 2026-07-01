@@ -1,12 +1,22 @@
-import {NodeBuilder, LinkBuilder, CircleBuilder, FactBuilder, TagBuilder} from "../entity/graph/builder";
+﻿import {NodeBuilder, LinkBuilder, CircleBuilder, FactBuilder, TagBuilder} from "../entity/graph/builder";
 import { Node } from "../entity/graph/node";
 import { Link } from "../entity/graph/link";
-import {Fact} from "../entity/graph/Fact.ts";
-import {Tag} from "../entity/graph/tag.ts";
-import { useGraphStore } from "../composable/graphStore.ts";
-import { DataTransfer } from "../graph/dataTransfer.ts";
-import {MainService} from "./mainService.ts";
-import {IFileAdapter} from "./transfer/fileAdapter.ts";
+import {Fact} from "../entity/graph/Fact";
+import {Tag} from "../entity/graph/tag";
+import { useGraphStore } from "../composable/graphStore";
+import { DataTransfer } from "../graph/dataTransfer";
+import {MainService} from "./mainService";
+import {IFileAdapter} from "./transfer/fileAdapter";
+import type {
+  FunctionalCircleCollection,
+  FunctionalCircleDTO,
+  GraphLinkCollection,
+  GraphLinkDTO,
+  GraphNodeCollection,
+  GraphNodeDTO,
+  TagCollection,
+  TagDTO,
+} from "@/networker/graph/types";
 
 export class GraphService extends MainService{
   private storeId: number = 0
@@ -20,10 +30,10 @@ export class GraphService extends MainService{
   currentNode: Node;
   private currentFact: Fact;
 
-  nodes: Node[] = [];
-  links: Link[] = [];
-  tags: Tag[] = [];
-  funcCircles: any[] = [];
+  nodes: GraphNodeCollection = [];
+  links: GraphLinkCollection = [];
+  tags: TagCollection = [];
+  funcCircles: FunctionalCircleCollection = [];
 
   cbActiveNode = (node: Node) => {}
 
@@ -47,7 +57,12 @@ export class GraphService extends MainService{
     )
   }
 
-  importCollections(nodes, links, circles, tags): void {
+  importCollections(
+    nodes: GraphNodeDTO[] = [],
+    links: GraphLinkDTO[] = [],
+    circles: FunctionalCircleDTO[] = [],
+    tags: TagDTO[] = [],
+  ): void {
     this.nodes = this.nodeBuilder.createCollection(nodes);
     this.links = this.linkBuilder.createCollection(links);
     this.funcCircles = this.circleBuilder.createCollection(circles);

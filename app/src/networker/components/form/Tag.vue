@@ -1,7 +1,7 @@
-<script setup lang="ts">
-import {Node} from "../../entity/graph/node.ts";
+﻿<script setup lang="ts">
+import {Node} from "../../entity/graph/node";
 import {ref, watch} from "vue";
-import {Tag} from "../../entity/graph/tag.ts";
+import {Tag} from "../../entity/graph/tag";
 
 const props = defineProps(['node', 'tags'])
 const emit = defineEmits(['add', 'remove', 'bindTag', 'unbindTag'])

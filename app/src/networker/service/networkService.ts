@@ -1,7 +1,7 @@
-import {NetworkBuilder} from "../entity/graph/builder";
-import {Network} from "../entity/graph/network.ts";
-import {useNetworkStore} from "../composable/networkStore.ts";
-import {MainService} from "./mainService.ts";
+﻿import {NetworkBuilder} from "../entity/graph/builder";
+import {Network} from "../entity/graph/network";
+import {useNetworkStore} from "../composable/networkStore";
+import {MainService} from "./mainService";
 
 export class NetworkService extends MainService{
   private storeId: number = 0

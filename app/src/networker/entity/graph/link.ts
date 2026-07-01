@@ -1,5 +1,5 @@
-import MainEntity from "../../../core/builder/mainEntity.ts";
-import {Node} from "./node.ts";
+﻿import MainEntity from "../../../core/builder/mainEntity";
+import {Node} from "./node";
 
 export class Distance {
   support: any = {}

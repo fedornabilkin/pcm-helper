@@ -1,10 +1,10 @@
-// @ts-ignore
+﻿// @ts-ignore
 import * as d3 from 'd3';
-import { DataTransfer } from './dataTransfer.ts';
-import { FunctionalCircle } from '../entity/graph/functionalCircle.ts';
-import { Link } from '../entity/graph/link.ts';
-import { Node } from '../entity/graph/node.ts';
-import {ToolTip} from "./toolTip.ts";
+import { DataTransfer } from './dataTransfer';
+import { FunctionalCircle } from '../entity/graph/functionalCircle';
+import { Link } from '../entity/graph/link';
+import { Node } from '../entity/graph/node';
+import {ToolTip} from "./toolTip";
 
 export class DrawNetwork {
   box: any = {
@@ -223,8 +223,8 @@ export class DrawNetwork {
       .attr('dy', (d: Node): number => d.y - d.getRadius() / 2)
 
     this.funcCircles
-      .attr('cx', (d: any): number => this.scope[d.id].circle.x)
-      .attr('cy', (d: any): number => this.scope[d.id].circle.y)
+      .attr('cx', (d: any): number => this.scope[d.id]?.circle?.x ?? this.box.w / 2)
+      .attr('cy', (d: any): number => this.scope[d.id]?.circle?.y ?? this.box.h / 2)
   }
 
   drawEnd(): void {

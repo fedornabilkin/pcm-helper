@@ -1,6 +1,6 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 
-import {Fact} from "@/networker/entity/graph/Fact.ts";
+import {Fact} from "@/networker/entity/graph/Fact";
 
 const props = defineProps(['node', 'fact'])
 const emit = defineEmits(['change', 'add', 'remove', 'save'])

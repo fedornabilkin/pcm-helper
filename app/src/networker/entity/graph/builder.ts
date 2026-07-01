@@ -1,11 +1,11 @@
-import MainBuilder from "../../../core/builder/mainBuilder.ts";
-import { Node } from './node.ts';
-import { Link } from './link.ts';
-import { FunctionalCircle } from './functionalCircle.ts';
-import {Network} from "./network.ts";
-import {Fact} from "./Fact.ts";
-import {PcmEntity} from "./pcm.ts";
-import {Tag} from "./tag.ts";
+﻿import MainBuilder from "../../../core/builder/mainBuilder";
+import { Node } from './node';
+import { Link } from './link';
+import { FunctionalCircle } from './functionalCircle';
+import {Network} from "./network";
+import {Fact} from "./Fact";
+import {PcmEntity} from "./pcm";
+import {Tag} from "./tag";
 
 export class NodeBuilder extends MainBuilder {
   entity: Node = new Node()

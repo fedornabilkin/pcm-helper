@@ -1,4 +1,5 @@
 import {createRouter, createWebHistory} from 'vue-router';
+import type {NavigationGuardNext, RouteLocationNormalized} from 'vue-router';
 import Main from '@/components/page/Main.vue';
 import PageNotFound from '@/components/page/PageNotFound.vue';
 import Personality from "@/components/page/Personality.vue";
@@ -49,7 +50,10 @@ const routes = [
         path: '/mymra-creation/:id?',
         name: 'mymraCreation',
         meta: {
-            title: 'Мымра-creation'
+            title: 'Мымра-creation',
+            hideFooter: true,
+            compactHeader: true,
+            hidePageTitle: true
         },
         component: MymraCreation
     },
@@ -70,7 +74,7 @@ const router = createRouter({
     routes,
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
     // instead of having to check every route record with
     // to.matched.some(record => record.meta.requiresAuth)
     // if (to.meta.requiresAuth && store.getters['auth/isAuthorized'] === false) {
@@ -84,7 +88,7 @@ router.beforeEach((to, from, next) => {
     // }
     const prefixTitle = 'PCM Helper.'
     const { title } = to.meta;
-    if(title !== undefined) {
+    if(typeof title === 'string') {
         document.title = `${prefixTitle} ${title}`;
     }
 

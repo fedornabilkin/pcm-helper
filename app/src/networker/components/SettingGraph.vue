@@ -1,23 +1,21 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import Node from "@/networker/components/form/Node.vue";
 import NodeLink from "@/networker/components/form/NodeLink.vue"
 import {ref} from "vue";
 import Fact from "@/networker/components/form/Fact.vue";
-import {Fact as EntityFact} from "@/networker/entity/graph/Fact.ts"
-import {JsonFileAdapter} from "@/networker/service/transfer/fileAdapter.ts";
+import {Fact as EntityFact} from "@/networker/entity/graph/Fact"
 import Tag from "@/networker/components/form/Tag.vue";
-import {Tag as EntityTag} from "@/networker/entity/graph/tag.ts"
+import {Tag as EntityTag} from "@/networker/entity/graph/tag"
 
 const props = defineProps(['links', 'circle', 'graphService'])
 const emit = defineEmits([
   'change', 'close',
   'addNode', 'removeNode',
   'changeLink', 'changeFact', 'changeTag',
-  'exportNetwork', 'importNetwork',
 ])
 
 const activeTab = ref(1)
-const currentNode = ref<Node | undefined>(undefined)
+const currentNode = ref<Node | undefined>(props.graphService.getCurrentNode())
 props.graphService.cbActiveNode = (node: Node) => {
   currentNode.value = node
 }
@@ -103,38 +101,6 @@ const filterTag = (tag: Tag): void => {
   //console.log(tag)
 }
 
-const exportNetwork = (): void => {
-  props.graphService.setFileAdapter(new JsonFileAdapter())
-  const dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(props.graphService.export());
-  const anchorElement = document.createElement('a');
-  anchorElement.href = dataUri;
-  anchorElement.download = `pcm-helper-${(new Date()).getTime()}.json`;
-  document.body.appendChild(anchorElement);
-  anchorElement.click();
-  document.body.removeChild(anchorElement);
-
-  emit('exportNetwork')
-}
-
-const importNetwork = (event: any): void => {
-  const file = event.target.files[0];
-  const reader = new FileReader();
-
-  reader.onload = e => {
-    const data = JSON.parse(e.target.result);
-    props.graphService.setFileAdapter(new JsonFileAdapter())
-    props.graphService.import(e.target.result)
-    event.target.value = ''
-
-    emit('importNetwork')
-  };
-
-  reader.onerror = (e) => {
-    console.error('Ошибка FileReader:', e);
-  };
-
-  reader.readAsText(file);
-}
 </script>
 
 <template lang="pug">
@@ -199,20 +165,6 @@ const importNetwork = (event: any): void => {
         @add="addTag"
         @remove="removeTag"
       )
-
-
-  .message
-    .message-body
-      | Импорт/экспорт данных в формате JSON. При импорте все старые данные будут перезаписаны без возможности восстановления.
-      | Перед импортом всегда экспортируйте свои данные в резервный файл для возможности восстановления.
-      .columns.mt-1
-        .column
-          button.button(@click="exportNetwork")
-            i.fa.fa-arrow-right-to-file
-            span.pl-1 Экспорт
-        .column
-          span Импорт
-          input.input(type="file" @change="importNetwork")
 
 </template>
 

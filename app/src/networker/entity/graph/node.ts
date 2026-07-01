@@ -1,8 +1,8 @@
-import MainEntity from "../../../core/builder/mainEntity.ts";
-import {Fact} from "./Fact.ts";
-import {PcmEntity} from "./pcm.ts";
-import {Link} from "./link.ts";
-import {Tag} from "./tag.ts";
+﻿import MainEntity from "../../../core/builder/mainEntity";
+import {Fact} from "./Fact";
+import {PcmEntity} from "./pcm";
+import {Link} from "./link";
+import {Tag} from "./tag";
 
 export class Node extends MainEntity{
   id: number|undefined = undefined;

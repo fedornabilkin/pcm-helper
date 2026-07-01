@@ -23,38 +23,34 @@ import democratic from '@/pcm/data/interaction/democratic.json'
 import free from '@/pcm/data/interaction/free.json'
 import individualized from '@/pcm/data/interaction/individualized.json'
 
+type PcmData = Record<string, unknown>
+type FilterName = 'logic' | 'persistent' | 'soulful' | 'dreamer' | 'rebel' | 'activist'
+
 export default class PCM {
-  getFilter() {
-    return new Promise((resolve, reject) => {
-      resolve([logic, persistent, soulful, dreamer, rebel, activist])
-    })
+  getFilter(): Promise<PcmData[]> {
+    return Promise.resolve([logic, persistent, soulful, dreamer, rebel, activist])
   }
 
-  getFilterByName(name) {
+  getFilterByName(name: FilterName): Promise<PcmData> {
     const items = {logic, persistent, soulful, dreamer, rebel, activist}
-    return new Promise((resolve, reject) => {
-      if (items[name] === undefined) {
-        reject(`Name ${name} is invalid`)
-      }
-      resolve(items[name])
-    })
+    const item = items[name]
+
+    if (item === undefined) {
+      return Promise.reject(`Name ${name} is invalid`)
+    }
+
+    return Promise.resolve(item)
   }
 
-  getChannel() {
-    return new Promise((resolve, reject) => {
-      resolve([directive, caring, emotional, question, interrupt])
-    })
+  getChannel(): Promise<PcmData[]> {
+    return Promise.resolve([directive, caring, emotional, question, interrupt])
   }
 
-  getPersonality() {
-    return new Promise((resolve, reject) => {
-      resolve([comforter, computer, director, emoter, protector])
-    })
+  getPersonality(): Promise<PcmData[]> {
+    return Promise.resolve([comforter, computer, director, emoter, protector])
   }
 
-  getInteraction() {
-    return new Promise((resolve, reject) => {
-      resolve([autocratic, benevolent, democratic, free, individualized])
-    })
+  getInteraction(): Promise<PcmData[]> {
+    return Promise.resolve([autocratic, benevolent, democratic, free, individualized])
   }
 }

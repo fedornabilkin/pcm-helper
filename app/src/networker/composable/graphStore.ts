@@ -1,4 +1,4 @@
-import {useLocalStore} from "../../core/composable/store/localStore.ts";
+﻿import {useLocalStore} from "../../core/composable/store/localStore";
 
 export function useGraphStore(id: string) {
   const prefix: string = id
@@ -25,7 +25,7 @@ export function useGraphStore(id: string) {
     state: funcCircles, save: saveFuncCircles, clear: clearFuncCircles
   } = useLocalStore(keyFuncCircles, [
     {id: 1, name:'support', r: 100},
-    {id: 1, name:'production', r: 250},
+    {id: 2, name:'production', r: 250},
   ]);
 
   const {

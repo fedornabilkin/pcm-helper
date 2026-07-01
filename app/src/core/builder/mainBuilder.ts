@@ -1,4 +1,4 @@
-import MainEntity from './mainEntity.ts';
+﻿import MainEntity from './mainEntity';
 
 export default class MainBuilder {
   entity: MainEntity = new MainEntity()
