@@ -27,6 +27,7 @@
     --app-graph-background: #fbfbfb;
     --app-graph-label: #1f2933;
     --app-graph-label-outline: rgb(255 255 255 / 78%);
+    --app-graph-badge-outline: rgb(255 255 255 / 92%);
     --app-tag-highlight: #f4b740;
 }
 
@@ -44,6 +45,7 @@
     --app-graph-background: #151a20;
     --app-graph-label: #f3f7fb;
     --app-graph-label-outline: rgb(0 0 0 / 72%);
+    --app-graph-badge-outline: rgb(0 0 0 / 82%);
     --app-tag-highlight: #f6d365;
 }
 

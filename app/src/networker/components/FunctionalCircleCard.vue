@@ -1,10 +1,15 @@
 <script setup lang="ts">
+const emit = defineEmits<{
+  close: [];
+}>()
 </script>
 
 <template lang="pug">
   .card
     header.card-header
       p.card-header-title Функциональные круги
+      button.card-header-icon(type="button" title="Закрыть" aria-label="Закрыть" @click="emit('close')")
+        span.delete
     .card-content
       article.content
         p Поместите себя в центр своей сети. Первый внутренний круг обычно состоит из ближайших друзей и членов семьи. Это люди, которым вы доверяете больше всего. Они формируют круг поддержки.

@@ -287,6 +287,7 @@ onBeforeUnmount((): void => {
         network-list(
           :current-network="currentNetwork"
           :networks="networks"
+          :graph-service="graphService"
           @saveNetwork="saveNetwork"
           @addNetwork="addNetwork"
           @removeNetwork="removeNetwork"
@@ -302,17 +303,17 @@ onBeforeUnmount((): void => {
             span Добавить контакт
       .saved.tag.is-success.is-light(v-if="isSaved") Сохранено {{ new Date() }}
 
-    aside.node-control-panel(v-if="selectedNode")
-      setting-graph.setting-graph(
-        :graph-service="graphService"
-        :links="links"
-        @change="change"
-        @removeNode="removeNode"
-        @changeLink="changeLink"
-        @changeFact="changeFact"
-        @changeTag="changeTag"
-        @close="hideNodeControl"
-      )
+    setting-graph.node-control-panel(
+      v-if="selectedNode"
+      :graph-service="graphService"
+      :links="links"
+      @change="change"
+      @removeNode="removeNode"
+      @changeLink="changeLink"
+      @changeFact="changeFact"
+      @changeTag="changeTag"
+      @close="hideNodeControl"
+    )
 
     .info-dock
       .info-actions
@@ -357,22 +358,42 @@ onBeforeUnmount((): void => {
           span.icon
             i.fa.fa-tags
 
-      .info-panel(v-if="activeInfoPanel")
-        .info-panel-header
-          button.delete(type="button" aria-label="close" @click="activeInfoPanel = null")
-        .info-panel-body
-          .notification.is-light.data-note(v-if="activeInfoPanel === 'data'")
+      .card.info-panel(v-if="activeInfoPanel === 'data'")
+        header.card-header
+          p.card-header-title Информация
+          button.card-header-icon(type="button" title="Закрыть" aria-label="Закрыть" @click="activeInfoPanel = null")
+            span.delete
+        .card-content
+          .notification.is-warning.is-light.data-note
             | Данные хранятся в браузере и сохраняются автоматически.
-          FunctionalCircleCard(v-if="activeInfoPanel === 'circle'")
-          NodeCard(v-if="activeInfoPanel === 'node'")
-          LinkCard(v-if="activeInfoPanel === 'link'")
-          TagManager(
-            v-if="activeInfoPanel === 'tag'"
-            :graph-service="graphService"
-            :active-tag-id="activeTagId"
-            @change="changeTag"
-            @select="selectTag"
-          )
+          .content.info-guide
+            p.has-text-weight-semibold Как использовать мымру
+            ul
+              li Создавайте контакты кнопкой "Добавить контакт" и отмечайте PCM-цвет, тип контакта, теги и описание.
+              li Связывайте контакты на вкладке связей, чтобы видеть маршруты и ближайшее окружение.
+              li Используйте функциональные круги для группировки контактов по близости: поддержка, продуктивность, развитие.
+              li Открывайте теги снизу, выбирайте активный тег и быстро подсвечивайте связанные с ним ноды на графе.
+              li На вкладке волшебной палочки можно отправить текст и получить предположение о PCM-типе контакта.
+      FunctionalCircleCard.info-panel(
+        v-if="activeInfoPanel === 'circle'"
+        @close="activeInfoPanel = null"
+      )
+      NodeCard.info-panel(
+        v-if="activeInfoPanel === 'node'"
+        @close="activeInfoPanel = null"
+      )
+      LinkCard.info-panel(
+        v-if="activeInfoPanel === 'link'"
+        @close="activeInfoPanel = null"
+      )
+      TagManager.info-panel(
+        v-if="activeInfoPanel === 'tag'"
+        :graph-service="graphService"
+        :active-tag-id="activeTagId"
+        @change="changeTag"
+        @select="selectTag"
+        @close="activeInfoPanel = null"
+      )
 
   .modal(:class="{'is-active': isTransferModalOpen}")
     .modal-background(@click="closeTransferModal")
@@ -462,8 +483,9 @@ onBeforeUnmount((): void => {
   gap: 0.5rem;
 }
 
-.network-menu > .tabs {
+.network-menu > .network-list {
   flex: 1;
+  min-width: 0;
 }
 
 .network-menu-actions {
@@ -496,9 +518,9 @@ onBeforeUnmount((): void => {
   bottom: 0;
   width: min(430px, calc(100vw - 1.5rem));
   height: 100%;
-  max-height: none;
-  overflow: auto;
-  padding: 0.75rem;
+  max-height: 100dvh;
+  overflow-y: auto;
+  margin-bottom: 0;
   border: 1px solid var(--app-border);
   border-radius: 6px 0 0 6px;
   background: var(--app-surface-soft);
@@ -517,6 +539,10 @@ onBeforeUnmount((): void => {
   left: 0.35rem;
   bottom: 0.35rem;
   width: min(520px, calc(100vw - 0.7rem));
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: 0.5rem;
   pointer-events: none;
 }
 
@@ -539,9 +565,6 @@ onBeforeUnmount((): void => {
 }
 
 .info-panel {
-  position: absolute;
-  left: 0;
-  bottom: 2.55rem;
   width: min(520px, 100%);
   max-height: min(62vh, 560px);
   display: flex;
@@ -553,19 +576,10 @@ onBeforeUnmount((): void => {
   box-shadow: var(--app-shadow);
 }
 
-.info-panel-header {
-  display: flex;
-  justify-content: flex-end;
-  flex: 0 0 auto;
-  padding: 0.5rem 0.5rem 0.25rem;
-  background: var(--app-surface);
-}
-
-.info-panel-body {
+.info-panel > .card-content {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 0 0.75rem 0.75rem;
 }
 
 .data-note {
@@ -577,7 +591,6 @@ onBeforeUnmount((): void => {
 }
 
 .info-panel .message,
-.info-panel .card,
 .info-panel .notification {
   margin-bottom: 0;
 }
@@ -591,7 +604,7 @@ onBeforeUnmount((): void => {
     top: 0;
     left: auto;
     width: auto;
-    max-height: none;
+    max-height: 100dvh;
   }
 
   .info-dock {
@@ -605,8 +618,6 @@ onBeforeUnmount((): void => {
   }
 
   .info-panel {
-    left: 0;
-    right: 0;
     width: auto;
   }
 }

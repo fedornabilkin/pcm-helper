@@ -2,6 +2,7 @@ import type {Fact} from "@/networker/entity/graph/Fact";
 import type {FunctionalCircle} from "@/networker/entity/graph/functionalCircle";
 import type {Link} from "@/networker/entity/graph/link";
 import type {Node} from "@/networker/entity/graph/node";
+import type {NodeTypeCode} from "@/networker/entity/graph/nodeType";
 import type {PcmEntity} from "@/networker/entity/graph/pcm";
 import type {Tag} from "@/networker/entity/graph/tag";
 
@@ -20,6 +21,7 @@ export interface GraphNodeDTO {
   id?: EntityId;
   name?: string;
   description?: string;
+  nodeType?: NodeTypeCode | null;
   facts?: FactDTO[];
   tags?: EntityId[];
   pcm?: PcmDTO;

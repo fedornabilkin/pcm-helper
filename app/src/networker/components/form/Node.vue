@@ -1,6 +1,9 @@
 ﻿<script setup lang="ts">
 import {PcmEntity} from "@/networker/entity/graph/pcm";
 import type {Node as EntityNode} from "@/networker/entity/graph/node";
+import {NODE_TYPE_OPTIONS} from "@/networker/entity/graph/nodeType";
+import type {NodeTypeOption} from "@/networker/entity/graph/nodeType";
+import type {NodeTypeCode} from "@/networker/entity/graph/nodeType";
 
 const props = defineProps<{
   node: EntityNode;
@@ -22,6 +25,31 @@ const remove = (): void => {
 const setFill = (pcm: PcmEntity): void => {
   props.node.setPcm(pcm)
   change()
+}
+
+const setNodeType = (nodeType: NodeTypeCode): void => {
+  props.node.nodeType = nodeType
+  change()
+}
+
+const resetNodeType = (): void => {
+  props.node.nodeType = null
+  change()
+}
+
+const getNodeTypeButtonStyle = (nodeType: NodeTypeOption): Record<string, string> => {
+  if (props.node.nodeType === nodeType.code) {
+    return {
+      borderColor: nodeType.color,
+      backgroundColor: nodeType.color,
+      color: '#ffffff',
+    }
+  }
+
+  return {
+    borderColor: nodeType.color,
+    color: nodeType.color,
+  }
 }
 
 const filters = [
@@ -49,7 +77,12 @@ const filters = [
 
     .field
       .control
-        input.input(v-model="props.node.description" type='text' @keyup="change" placeholder="Описание")
+        textarea.textarea(
+          v-model="props.node.description"
+          rows="4"
+          @input="change"
+          placeholder="Описание"
+        )
 
     .field
       .control
@@ -66,7 +99,58 @@ const filters = [
         @click="setFill(pcm)"
       ) {{ pcm.filter.label }}
 
+    .field.node-type-field
+      label.label Тип контакта
+      .buttons.are-small
+        button.button.node-type-button(
+          v-for="nodeType in NODE_TYPE_OPTIONS"
+          :key="nodeType.code"
+          type="button"
+          :title="nodeType.label"
+          :aria-label="nodeType.label"
+          :style="getNodeTypeButtonStyle(nodeType)"
+          @click="setNodeType(nodeType.code)"
+        )
+          span.icon
+            svg.node-type-svg-icon(v-if="nodeType.iconKind === 'connector'" viewBox="-10 -10 20 20" aria-hidden="true")
+              line(x1="-5" y1="0" x2="5" y2="0")
+              circle(cx="-5" cy="0" r="2")
+              circle(cx="5" cy="0" r="2")
+            svg.node-type-svg-icon(v-else-if="nodeType.iconKind === 'condenser'" viewBox="-10 -10 20 20" aria-hidden="true")
+              line(x1="-5" y1="0" x2="-1.5" y2="0")
+              line(x1="1.5" y1="0" x2="5" y2="0")
+              line(x1="-1.5" y1="-5" x2="-1.5" y2="5")
+              line(x1="1.5" y1="-5" x2="1.5" y2="5")
+            i.fa(v-else :class="nodeType.iconClass")
+        button.button.is-light.node-type-button(
+          type="button"
+          title="Сбросить тип контакта"
+          aria-label="Сбросить тип контакта"
+          :disabled="!props.node.nodeType"
+          @click="resetNodeType"
+        )
+          span.icon
+            i.fa.fa-rotate-left
+
 </template>
 
-<style>
+<style scoped>
+.node-type-field {
+  margin-top: 0.75rem;
+}
+
+.node-type-button {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.node-type-svg-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 </style>

@@ -1,11 +1,15 @@
 <script setup lang="ts">
-
+const emit = defineEmits<{
+  close: [];
+}>()
 </script>
 
 <template lang="pug">
   .card
     header.card-header
       p.card-header-title Связи
+      button.card-header-icon(type="button" title="Закрыть" aria-label="Закрыть" @click="emit('close')")
+        span.delete
     .card-content
       article.content
         p Связь с контактом не позволяет ему улететь в область забвения, хотя некоторые связи со временем ослабевают и/или контакт теряется.

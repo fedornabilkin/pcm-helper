@@ -3,11 +3,13 @@ import {Fact} from "./Fact";
 import {PcmEntity} from "./pcm";
 import {Link} from "./link";
 import {Tag} from "./tag";
+import type {NodeTypeCode} from "./nodeType";
 
 export class Node extends MainEntity{
   id: number|undefined = undefined;
   name: string = ''
   description: string = ''
+  nodeType: NodeTypeCode | null = null
   facts: Fact[] = []
   tags: number[] = []
   pcm: PcmEntity;

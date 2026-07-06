@@ -19,6 +19,7 @@ export class NodeBuilder extends MainBuilder {
     this.entity.id = data.id
     this.entity.name = data.name
     this.entity.description = data.description
+    this.entity.nodeType = data.nodeType ?? null
     this.entity.facts = []
 
     this.entity.fixed = data.fixed || false

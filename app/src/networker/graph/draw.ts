@@ -4,6 +4,7 @@ import { DataTransfer } from './dataTransfer';
 import { FunctionalCircle } from '../entity/graph/functionalCircle';
 import { Link } from '../entity/graph/link';
 import { Node } from '../entity/graph/node';
+import {getNodeTypeOption} from '../entity/graph/nodeType';
 import {ToolTip} from "./toolTip";
 
 export class DrawNetwork {
@@ -23,10 +24,12 @@ export class DrawNetwork {
   nodesGroup: any;
   linksGroup: any;
   funcCirclesGroup: any;
+  nodeTypeBadgesGroup: any;
   labelsGroup: any;
   nodes: any;
   links: any;
   funcCircles: any;
+  nodeTypeBadges: any;
   labels: any;
   simulation: any;
 
@@ -52,10 +55,11 @@ export class DrawNetwork {
     this.funcCirclesGroup = this.container.append('g').attr('class', 'functional-circle')
     this.linksGroup = this.container.append('g').attr('class', 'links')
     this.nodesGroup = this.container.append('g').attr('class', 'nodes')
+    this.nodeTypeBadgesGroup = this.container.append('g').attr('class', 'node-type-badges')
     this.labelsGroup = this.container.append('g').attr('class', 'label')
 
     this.simulationInit()
-      .drawFunctionalCircle().drawLink().drawNode().drawLabel()
+      .drawFunctionalCircle().drawLink().drawNode().drawNodeTypeBadge().drawLabel()
 
     this.simulation.on("tick", () => this.drawTick())
     this.simulation.on("end", () => this.drawEnd())
@@ -63,7 +67,7 @@ export class DrawNetwork {
 
   reRender() {
     if (this.simulation) {
-      this.drawFunctionalCircle().drawLink().drawNode().drawLabel()
+      this.drawFunctionalCircle().drawLink().drawNode().drawNodeTypeBadge().drawLabel()
 
       this.simulation.nodes(this.dto.getNodes())
       this.simulation.force('link').links(this.dto.getLinks())
@@ -164,6 +168,85 @@ export class DrawNetwork {
     return this;
   }
 
+  drawNodeTypeBadge(): this {
+    this.nodeTypeBadges = this.nodeTypeBadgesGroup
+      .selectAll('g')
+      .data(this.dto.getNodes().filter((d: Node): boolean => Boolean(d.nodeType)), d => d.id)
+      .join('g')
+      .attr('class', 'node-type-badge')
+
+    this.nodeTypeBadges.selectAll('*').remove()
+
+    this.nodeTypeBadges
+      .append('circle')
+      .attr('r', 10)
+      .style('fill', (d: Node): string => getNodeTypeOption(d.nodeType)?.color ?? '#64748b')
+      .style('stroke', 'var(--app-graph-badge-outline)')
+      .style('stroke-width', '2px')
+
+    this.nodeTypeBadges.each((d: Node, index: number, groups: SVGGElement[]): void => {
+      this.drawNodeTypeIcon(d3.select(groups[index]), d)
+    })
+
+    return this
+  }
+
+  drawNodeTypeIcon(group: any, node: Node): void {
+    const nodeType = getNodeTypeOption(node.nodeType)
+    const iconGroup = group
+      .append('g')
+      .attr('class', 'node-type-icon')
+      .style('stroke', '#ffffff')
+      .style('stroke-width', '1.7px')
+      .style('stroke-linecap', 'round')
+      .style('stroke-linejoin', 'round')
+
+    if (nodeType?.iconKind === 'connector') {
+      iconGroup.append('line').attr('x1', -5).attr('y1', 0).attr('x2', 5).attr('y2', 0)
+      iconGroup.append('circle').attr('cx', -5).attr('cy', 0).attr('r', 2).style('fill', 'none')
+      iconGroup.append('circle').attr('cx', 5).attr('cy', 0).attr('r', 2).style('fill', 'none')
+      return
+    }
+
+    if (nodeType?.iconKind === 'condenser') {
+      iconGroup.append('line').attr('x1', -5).attr('y1', 0).attr('x2', -1.5).attr('y2', 0)
+      iconGroup.append('line').attr('x1', 1.5).attr('y1', 0).attr('x2', 5).attr('y2', 0)
+      iconGroup.append('line').attr('x1', -1.5).attr('y1', -5).attr('x2', -1.5).attr('y2', 5)
+      iconGroup.append('line').attr('x1', 1.5).attr('y1', -5).attr('x2', 1.5).attr('y2', 5)
+      return
+    }
+
+    if (nodeType?.iconKind === 'bridge') {
+      this.drawFontAwesomeNodeTypeIcon(group, nodeType.iconClass)
+      return
+    }
+
+    if (nodeType?.iconKind === 'gatekeeper') {
+      this.drawFontAwesomeNodeTypeIcon(group, nodeType.iconClass)
+    }
+  }
+
+  drawFontAwesomeNodeTypeIcon(group: any, iconClass?: string): void {
+    group.select('.node-type-icon').remove()
+
+    group
+      .append('foreignObject')
+      .attr('x', -8)
+      .attr('y', -8)
+      .attr('width', 16)
+      .attr('height', 16)
+      .append('xhtml:span')
+      .attr('class', 'node-type-fa-icon')
+      .style('width', '16px')
+      .style('height', '16px')
+      .style('display', 'flex')
+      .style('align-items', 'center')
+      .style('justify-content', 'center')
+      .style('color', '#ffffff')
+      .style('font-size', '11px')
+      .html(`<i class="fa ${iconClass ?? ''}"></i>`)
+  }
+
   mouseOver(e: any, d: any): void {
     if(this.toolTipBox) {
       this.toolTipBox.classed('is-block', true).classed('box', true)
@@ -236,6 +319,9 @@ export class DrawNetwork {
     this.labels
       .attr('dx', (d: Node): number => d.x + d.getRadius())
       .attr('dy', (d: Node): number => d.y - d.getRadius() / 2)
+
+    this.nodeTypeBadges
+      .attr('transform', (d: Node): string => `translate(${d.x - d.getRadius() * 0.72}, ${d.y - d.getRadius() * 0.72})`)
 
     this.funcCircles
       .attr('cx', (d: any): number => this.scope[d.nodeId]?.circle?.x ?? this.box.w / 2)

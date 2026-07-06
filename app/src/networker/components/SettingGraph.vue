@@ -201,15 +201,13 @@ onBeforeUnmount(() => {
 </script>
 
 <template lang="pug">
-  .panel(v-if="currentNode" :class="filterClass(currentNode)")
+  aside.panel(v-if="currentNode" :class="filterClass(currentNode)")
     .panel-heading {{ currentNode.getName() }}
       button.button.is-pulled-right(@click="close")
         i.fa.fa-close
     .panel-tabs
       a(:class="{'is-active': activeTab === 1}" @click="setActiveTab(1)")
         i.fa.fa-user
-      a(:class="{'is-active': activeTab === 6}" @click="setActiveTab(6)")
-        i.fa.fa-circle-nodes
       a(:class="{'is-active': activeTab === 2}" @click="setActiveTab(2)")
         i.fa.fa-link
       a(:class="{'is-active': activeTab === 3}" @click="setActiveTab(3)")
@@ -218,19 +216,14 @@ onBeforeUnmount(() => {
         i.fa.fa-tag
       a(:class="{'is-active': activeTab === 5}" @click="setActiveTab(5)")
         i.fa.fa-wand-magic-sparkles
+      a(:class="{'is-active': activeTab === 6}" @click="setActiveTab(6)")
+        i.fa.fa-circle-nodes
 
     .panel-block(v-if="activeTab === 1")
       Node(
         :node="currentNode"
         @change="change"
         @remove="removeNode"
-      )
-
-    .panel-block(v-if="activeTab === 6")
-      FunctionalCircle(
-        :node="currentNode"
-        :graph-service="props.graphService"
-        @change="change"
       )
 
     .panel-block(v-if="activeTab === 2")
@@ -306,6 +299,13 @@ onBeforeUnmount(() => {
         .content.ai-summary(v-if="aiSummary")
           p.has-text-weight-semibold Резюме от ИИ
           pre {{ aiSummary }}
+
+    .panel-block(v-if="activeTab === 6")
+      FunctionalCircle(
+        :node="currentNode"
+        :graph-service="props.graphService"
+        @change="change"
+      )
 
 </template>
 
