@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
 import {useRoute} from "vue-router";
+import {useTheme} from "@/core/composable/theme/useTheme";
 
 const open = ref(false)
 const route = useRoute()
 const isCompactHeader = computed(() => route.meta.compactHeader === true)
 const showPageTitle = computed(() => route.meta.hidePageTitle !== true)
+const {isDarkTheme, toggleTheme} = useTheme()
+const themeButtonTitle = computed(() => isDarkTheme.value ? 'Включить светлую тему' : 'Включить тёмную тему')
 
 const toggleNavigation = () => {
   open.value = !open.value
@@ -88,6 +91,9 @@ const getTitle = (r) => {
     .navbar-brand
       a.navbar-item(href='/')
         img(src='/logo.png' alt='pcmhelper.ru')
+      button.button.is-small.is-light.theme-toggle(type="button" :title="themeButtonTitle" @click="toggleTheme")
+        span.icon
+          i.fa(:class="isDarkTheme ? 'fa-sun' : 'fa-moon'")
     //  a.navbar-burger.burger(role='button' :class="{ 'is-active': open }" aria-label='menu' aria-expanded='false' @click='toggleNavigation')
     //    span(aria-hidden='true')
     //    span(aria-hidden='true')
@@ -110,6 +116,11 @@ const getTitle = (r) => {
 </template>
 
 <style scoped>
+.theme-toggle {
+  align-self: center;
+  margin-left: 0.25rem;
+}
+
 .app-header.is-compact .navbar {
   display: inline-flex;
   min-height: 2.25rem;

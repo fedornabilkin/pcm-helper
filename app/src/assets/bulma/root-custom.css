@@ -15,4 +15,135 @@
     --bulma-danger-h: 0deg;
     --bulma-danger-s: 82%;
     --bulma-danger-l: 76%;
+
+    --app-background: #f6f7f9;
+    --app-surface: #ffffff;
+    --app-surface-soft: rgb(255 255 255 / 94%);
+    --app-surface-muted: #f2f4f7;
+    --app-text: #1f2933;
+    --app-text-muted: #5e6b78;
+    --app-border: hsl(0deg 0% 86%);
+    --app-shadow: 0 0.5rem 1.5rem hsl(0deg 0% 4% / 12%);
+    --app-graph-background: #fbfbfb;
+    --app-graph-label: #1f2933;
+    --app-graph-label-outline: rgb(255 255 255 / 78%);
+    --app-tag-highlight: #f4b740;
+}
+
+:root.theme-dark {
+    color-scheme: dark;
+
+    --app-background: #111418;
+    --app-surface: #1b2027;
+    --app-surface-soft: rgb(27 32 39 / 94%);
+    --app-surface-muted: #252b34;
+    --app-text: #edf1f5;
+    --app-text-muted: #aab4bf;
+    --app-border: #3a4350;
+    --app-shadow: 0 0.75rem 2rem rgb(0 0 0 / 38%);
+    --app-graph-background: #151a20;
+    --app-graph-label: #f3f7fb;
+    --app-graph-label-outline: rgb(0 0 0 / 72%);
+    --app-tag-highlight: #f6d365;
+}
+
+html,
+body,
+#app {
+    min-height: 100%;
+    background: var(--app-background);
+    color: var(--app-text);
+}
+
+.theme-dark body,
+.theme-dark .section,
+.theme-dark .navbar,
+.theme-dark .tabs ul,
+.theme-dark .panel,
+.theme-dark .card,
+.theme-dark .box,
+.theme-dark .modal-card-head,
+.theme-dark .modal-card-body,
+.theme-dark .modal-card-foot,
+.theme-dark .message-body,
+.theme-dark .notification.is-light {
+    background-color: var(--app-surface);
+    color: var(--app-text);
+}
+
+.theme-dark .title,
+.theme-dark .subtitle,
+.theme-dark .label,
+.theme-dark .card-header-title,
+.theme-dark .modal-card-title,
+.theme-dark .navbar-item,
+.theme-dark .tabs a,
+.theme-dark .panel-heading {
+    color: var(--app-text);
+}
+
+.theme-dark .help,
+.theme-dark .content,
+.theme-dark .card-content,
+.theme-dark .message-body {
+    color: var(--app-text-muted);
+}
+
+.theme-dark .input,
+.theme-dark .textarea,
+.theme-dark .select select {
+    background-color: var(--app-surface-muted);
+    border-color: var(--app-border);
+    color: var(--app-text);
+}
+
+.theme-dark .input::placeholder,
+.theme-dark .textarea::placeholder {
+    color: var(--app-text-muted);
+}
+
+.theme-dark .button.is-light,
+.theme-dark .tag.is-light {
+    background-color: var(--app-surface-muted);
+    color: var(--app-text);
+}
+
+.theme-dark .tag {
+    border: 1px solid var(--app-border);
+    color: var(--app-text);
+}
+
+.theme-dark .tag:not(.is-primary):not(.is-link):not(.is-info):not(.is-success):not(.is-warning):not(.is-danger):not(.is-dark) {
+    background-color: var(--app-surface-muted);
+}
+
+.theme-dark .tag.is-dark {
+    background-color: #d9e4ee;
+    border-color: #d9e4ee;
+    color: #111418;
+}
+
+.theme-dark .tag.is-delete {
+    border-color: transparent;
+}
+
+.theme-dark .has-text-black {
+    color: var(--app-text) !important;
+}
+
+.theme-dark .tabs.is-boxed li.is-active a,
+.theme-dark .tabs.is-boxed a:hover {
+    background-color: var(--app-surface);
+    border-color: var(--app-border);
+    color: var(--app-text);
+}
+
+.theme-dark .card,
+.theme-dark .box,
+.theme-dark .panel,
+.theme-dark .modal-card-head,
+.theme-dark .modal-card-body,
+.theme-dark .modal-card-foot,
+.theme-dark .message-body {
+    border-color: var(--app-border);
 }

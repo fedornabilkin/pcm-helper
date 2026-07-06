@@ -41,8 +41,11 @@ export interface GraphLinkDTO {
 
 export interface FunctionalCircleDTO {
   id?: EntityId;
+  nodeId?: EntityId;
   name?: string;
   r?: number;
+  fill?: string;
+  stroke?: string;
 }
 
 export interface TagDTO {

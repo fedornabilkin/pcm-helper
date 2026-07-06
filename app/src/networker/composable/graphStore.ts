@@ -24,8 +24,9 @@ export function useGraphStore(id: string) {
   const {
     state: funcCircles, save: saveFuncCircles, clear: clearFuncCircles
   } = useLocalStore(keyFuncCircles, [
-    {id: 1, name:'support', r: 100},
-    {id: 2, name:'production', r: 250},
+    {id: 1, nodeId: 1, name:'support', r: 100, fill: 'rgba(71,157,248,0.26)', stroke: 'rgba(71,157,248,0.55)'},
+    {id: 2, nodeId: 1, name:'production', r: 250, fill: 'rgba(71,157,248,0.16)', stroke: 'rgba(71,157,248,0.38)'},
+    {id: 3, nodeId: 1, name:'development', r: 400, fill: 'rgba(71,157,248,0.08)', stroke: 'rgba(71,157,248,0.24)'},
   ]);
 
   const {

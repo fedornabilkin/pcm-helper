@@ -1,16 +1,23 @@
 ﻿<script setup lang="ts">
 import Node from "@/networker/components/form/Node.vue";
 import NodeLink from "@/networker/components/form/NodeLink.vue"
-import {ref} from "vue";
+import FunctionalCircle from "@/networker/components/form/FunctionalCircle.vue";
+import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import Fact from "@/networker/components/form/Fact.vue";
 import {Fact as EntityFact} from "@/networker/entity/graph/Fact"
 import Tag from "@/networker/components/form/Tag.vue";
 import {Tag as EntityTag} from "@/networker/entity/graph/tag"
+import {PcmTypeAiService} from "@/networker/service/ai/pcmTypeAiService";
+import {
+  AiQueueSocketService,
+  createSameOriginAiQueueEndpoint,
+  type AiQueueStatus,
+} from "@/networker/service/ai/queue/aiQueueSocketService";
 
 const props = defineProps(['links', 'circle', 'graphService'])
 const emit = defineEmits([
   'change', 'close',
-  'addNode', 'removeNode',
+  'removeNode',
   'changeLink', 'changeFact', 'changeTag',
 ])
 
@@ -21,6 +28,27 @@ props.graphService.cbActiveNode = (node: Node) => {
 }
 
 const currentFact = ref<EntityFact | undefined>(undefined);
+const aiService = new PcmTypeAiService()
+const aiText = ref('')
+const aiSummary = ref('')
+const isAiLoading = ref(false)
+const aiCooldownSeconds = ref(0)
+const currentAiRequestId = ref('')
+const aiQueueStatus = ref<AiQueueStatus>({
+  connected: false,
+  queueLength: 0,
+  activeRequestId: null,
+  currentRequestPosition: null,
+  retryAfterSeconds: 0,
+  updatedAt: 0,
+})
+const aiClientId = createAiRequestId()
+const aiQueueSocket = new AiQueueSocketService(
+  import.meta.env.VITE_AI_QUEUE_WS_ENDPOINT ?? createSameOriginAiQueueEndpoint(),
+  aiClientId,
+)
+let unsubscribeAiQueue: (() => void) | undefined
+let aiCooldownTimer: number | undefined
 
 
 const setActiveTab = (idx: number): void => {
@@ -33,11 +61,6 @@ const filterClass = (item: Node): string => {
 
 const change = (): void => {
   emit('change')
-}
-
-const addNode = (): void => {
-  activeTab.value = 1
-  emit('addNode')
 }
 
 const removeNode = (): void => {
@@ -71,16 +94,6 @@ const removeFact = (fact: EntityFact): void => {
   emit('changeFact')
 }
 
-const addTag = (tag: any): void => {
-  props.graphService.addTag(tag)
-  emit('changeTag')
-}
-
-const removeTag = (tag: EntityTag): void => {
-  props.graphService.removeTag(tag)
-  emit('changeTag')
-}
-
 const bindTag = (tag: EntityTag): void => {
   props.graphService.bindTag(tag, currentNode.value)
   emit('changeTag')
@@ -97,24 +110,97 @@ const close = (): void => {
   emit('close')
 }
 
-const filterTag = (tag: Tag): void => {
-  //console.log(tag)
+const isAiSubmitDisabled = computed((): boolean => {
+  return !aiText.value.trim() || isAiLoading.value || aiCooldownSeconds.value > 0
+})
+
+const aiQueuePosition = computed((): number | null => {
+  return aiQueueStatus.value.currentRequestPosition
+})
+
+const aiQueueConnectionTitle = computed((): string => {
+  return aiQueueStatus.value.connected ? 'Очередь подключена' : 'Очередь недоступна'
+})
+
+const aiQueueLabel = computed((): string => {
+  const position = aiQueuePosition.value ? ` / позиция ${aiQueuePosition.value}` : ''
+  return `Очередь ${aiQueueStatus.value.queueLength}${position}`
+})
+
+function createAiRequestId(): string {
+  if (typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
+
+const startAiCooldown = (seconds = 60): void => {
+  aiCooldownSeconds.value = seconds
+
+  if (aiCooldownTimer) {
+    window.clearInterval(aiCooldownTimer)
+  }
+
+  aiCooldownTimer = window.setInterval(() => {
+    aiCooldownSeconds.value = Math.max(0, aiCooldownSeconds.value - 1)
+
+    if (aiCooldownSeconds.value === 0 && aiCooldownTimer) {
+      window.clearInterval(aiCooldownTimer)
+      aiCooldownTimer = undefined
+    }
+  }, 1000)
+}
+
+const detectPcmType = async (): Promise<void> => {
+  if (isAiSubmitDisabled.value) {
+    return
+  }
+
+  isAiLoading.value = true
+  aiSummary.value = ''
+  currentAiRequestId.value = createAiRequestId()
+  aiQueueSocket.setCurrentRequestId(currentAiRequestId.value)
+  aiQueueSocket.requestStatus()
+
+  try {
+    aiSummary.value = await aiService.detectType(aiText.value, currentAiRequestId.value, aiClientId)
+  } catch (error) {
+    aiSummary.value = error instanceof Error ? error.message : 'Не удалось получить резюме от ИИ.'
+  } finally {
+    isAiLoading.value = false
+    startAiCooldown()
+    aiQueueSocket.requestStatus()
+  }
+}
+
+const clearAiForm = (): void => {
+  aiText.value = ''
+  aiSummary.value = ''
+  currentAiRequestId.value = ''
+  aiQueueSocket.setCurrentRequestId('')
+  aiQueueSocket.requestStatus()
+}
+
+onMounted(() => {
+  unsubscribeAiQueue = aiQueueSocket.subscribe((status) => {
+    aiQueueStatus.value = status
+  })
+  aiQueueSocket.connect()
+})
+
+onBeforeUnmount(() => {
+  if (aiCooldownTimer) {
+    window.clearInterval(aiCooldownTimer)
+  }
+
+  unsubscribeAiQueue?.()
+  aiQueueSocket.disconnect()
+})
 
 </script>
 
 <template lang="pug">
-  //.field.is-grouped.is-grouped-multiline
-    template(v-for="tag in props.graphService.tags")
-      .control
-        span.tag.is-hoverable(@click="filterTag(tag)") {{ tag.name }}
-  .mr-1
-    button.button.mb-2(@click="addNode")
-      i.fa.fa-plus
-      span.pl-1 Добавить
-
-    .is-pulled-right Контактов: {{ props.graphService.getNodesCount() }}
-
   .panel(v-if="currentNode" :class="filterClass(currentNode)")
     .panel-heading {{ currentNode.getName() }}
       button.button.is-pulled-right(@click="close")
@@ -122,18 +208,29 @@ const filterTag = (tag: Tag): void => {
     .panel-tabs
       a(:class="{'is-active': activeTab === 1}" @click="setActiveTab(1)")
         i.fa.fa-user
+      a(:class="{'is-active': activeTab === 6}" @click="setActiveTab(6)")
+        i.fa.fa-circle-nodes
       a(:class="{'is-active': activeTab === 2}" @click="setActiveTab(2)")
         i.fa.fa-link
       a(:class="{'is-active': activeTab === 3}" @click="setActiveTab(3)")
         i.fa.fa-file
       a(:class="{'is-active': activeTab === 4}" @click="setActiveTab(4)")
         i.fa.fa-tag
+      a(:class="{'is-active': activeTab === 5}" @click="setActiveTab(5)")
+        i.fa.fa-wand-magic-sparkles
 
     .panel-block(v-if="activeTab === 1")
       Node(
         :node="currentNode"
         @change="change"
         @remove="removeNode"
+      )
+
+    .panel-block(v-if="activeTab === 6")
+      FunctionalCircle(
+        :node="currentNode"
+        :graph-service="props.graphService"
+        @change="change"
       )
 
     .panel-block(v-if="activeTab === 2")
@@ -162,11 +259,101 @@ const filterTag = (tag: Tag): void => {
         :tags="props.graphService.tags"
         @bindTag="bindTag"
         @unbindTag="unbindTag"
-        @add="addTag"
-        @remove="removeTag"
       )
+
+    .panel-block(v-if="activeTab === 5")
+      .ai-type-tool
+        .field
+          .ai-text-header
+            label.label Текст для анализа
+            .ai-queue-status
+              span.icon.ai-queue-connection(
+                :class="aiQueueStatus.connected ? 'has-text-success' : 'has-text-warning'"
+                :title="aiQueueConnectionTitle"
+              )
+                i.fa(:class="aiQueueStatus.connected ? 'fa-link' : 'fa-link-slash'")
+              span.tag.is-light(:title="aiQueueConnectionTitle") {{ aiQueueLabel }}
+              span.tag.is-warning.is-light(v-if="aiQueueStatus.retryAfterSeconds > 0")
+                | {{ aiQueueStatus.retryAfterSeconds }} с
+          .control
+            textarea.textarea(
+              v-model="aiText"
+              rows="7"
+              placeholder="Вставьте фрагмент речи, переписки или заметки контакта"
+            )
+        .field
+          .control.ai-action-buttons
+            button.button.is-info.is-fullwidth(
+              type="button"
+              :class="{'is-loading': isAiLoading}"
+              :disabled="isAiSubmitDisabled"
+              @click="detectPcmType"
+            )
+              span.icon
+                i.fa.fa-paper-plane
+              span(v-if="aiCooldownSeconds === 0") Отправить
+              span(v-else) Подождите {{ aiCooldownSeconds }} с
+            button.button.is-light(
+              type="button"
+              title="Очистить форму"
+              :disabled="isAiLoading && !aiText && !aiSummary"
+              @click="clearAiForm"
+            )
+              span.icon
+                i.fa.fa-eraser
+        p.help.is-warning(v-if="aiCooldownSeconds > 0")
+          | Следующий запрос будет доступен через {{ aiCooldownSeconds }} с.
+        .content.ai-summary(v-if="aiSummary")
+          p.has-text-weight-semibold Резюме от ИИ
+          pre {{ aiSummary }}
 
 </template>
 
-<style>
+<style scoped>
+.ai-type-tool {
+  width: 100%;
+}
+
+.ai-queue-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.ai-text-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-text-header .label {
+  margin-bottom: 0;
+}
+
+.ai-action-buttons {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+}
+
+@media screen and (max-width: 520px) {
+  .ai-text-header {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-queue-status {
+    justify-content: flex-start;
+  }
+}
+
+.ai-summary {
+  margin-top: 1rem;
+}
+
+.ai-summary pre {
+  white-space: pre-wrap;
+}
 </style>

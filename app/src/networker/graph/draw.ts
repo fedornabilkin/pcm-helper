@@ -32,6 +32,7 @@ export class DrawNetwork {
 
   toolTipBox: any;
   toolTip: ToolTip|null;
+  activeTagId: number | null = null;
 
   clickNode = (e: any, d: Node) => {}
   clickLink = (e: any, d: Node) => {}
@@ -71,13 +72,22 @@ export class DrawNetwork {
     }
   }
 
+  setActiveTagId(tagId: number | null): this {
+    this.activeTagId = tagId
+    return this
+  }
+
+  isNodeInActiveTag(node: Node): boolean {
+    return this.activeTagId !== null && node.tags.includes(this.activeTagId)
+  }
+
   drawContainer(element: HTMLElement): this {
     this.divElement = d3.select(element)
       .insert('div', ':first-child')
       .attr('class', this.box.html?.class ?? 'graph-container')
       .style('width', this.box.w + 'px')
       .style('height', this.box.h + 'px')
-      .style('background', '#fbfbfb')
+      .style('background', 'var(--app-graph-background)')
     return this;
   }
 
@@ -144,8 +154,8 @@ export class DrawNetwork {
       .join("circle")
       .attr("r", (d: Node): number => d.getRadius())
       .style("fill", (d: Node): string => d.getFill())
-      .style("stroke", (d: Node): string => d.getStroke())
-      .style("stroke-width", (d: Node): string => d.getStrokeWidth())
+      .style("stroke", (d: Node): string => this.isNodeInActiveTag(d) ? 'var(--app-tag-highlight)' : d.getStroke())
+      .style("stroke-width", (d: Node): string => this.isNodeInActiveTag(d) ? '8' : d.getStrokeWidth())
       .call(this.drag(this.simulation))
       .on('click', this.clickNode)
       .on('mouseover', (e,d): void => {this.mouseOver(e,d)})
@@ -201,6 +211,11 @@ export class DrawNetwork {
       .join("text")
       .text((d: Node): string => d.getName())
       .attr('font-size', (d: Node): number => d.getFontSize())
+      .style('fill', 'var(--app-graph-label)')
+      .style('paint-order', 'stroke')
+      .style('stroke', 'var(--app-graph-label-outline)')
+      .style('stroke-width', '3px')
+      .style('stroke-linejoin', 'round')
     return this;
   }
 
@@ -223,8 +238,8 @@ export class DrawNetwork {
       .attr('dy', (d: Node): number => d.y - d.getRadius() / 2)
 
     this.funcCircles
-      .attr('cx', (d: any): number => this.scope[d.id]?.circle?.x ?? this.box.w / 2)
-      .attr('cy', (d: any): number => this.scope[d.id]?.circle?.y ?? this.box.h / 2)
+      .attr('cx', (d: any): number => this.scope[d.nodeId]?.circle?.x ?? this.box.w / 2)
+      .attr('cy', (d: any): number => this.scope[d.nodeId]?.circle?.y ?? this.box.h / 2)
   }
 
   drawEnd(): void {

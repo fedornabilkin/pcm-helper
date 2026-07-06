@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import {ref} from "vue";
 import {Network} from "@/networker/entity/graph/network";
+import type {RouteLocationNormalizedLoaded} from "vue-router";
 
 const props = defineProps(['currentNetwork', 'networks'])
 const emit = defineEmits([
@@ -10,7 +11,7 @@ const emit = defineEmits([
 const editActiveIndex = ref(false)
 const defaultItem = ref(new Network({id: 0, name: 'Основная'}))
 
-const currentRoute = (r: any, i: Network): boolean => {
+const currentRoute = (r: RouteLocationNormalizedLoaded, i: Network): boolean => {
   if (r.params.id !== undefined && r.params.id !== '') {
     return r.params.id === i.id + ''
   }
@@ -20,7 +21,7 @@ const currentRoute = (r: any, i: Network): boolean => {
   return false
 }
 
-const switchNetwork = (item: Netword): void => {
+const switchNetwork = (item: Network): void => {
   editActiveIndex.value = false
   emit('switchNetwork', item)
 }

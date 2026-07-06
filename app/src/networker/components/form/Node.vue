@@ -1,11 +1,14 @@
 ﻿<script setup lang="ts">
 import {PcmEntity} from "@/networker/entity/graph/pcm";
+import type {Node as EntityNode} from "@/networker/entity/graph/node";
 
-const props = defineProps(['node'])
+const props = defineProps<{
+  node: EntityNode;
+}>()
 const emit = defineEmits(['change', 'remove'])
 
 const vFocus = {
-  mounted: (el) => el.focus()
+  mounted: (el: HTMLInputElement) => el.focus()
 }
 
 const change = (): void => {
@@ -16,7 +19,7 @@ const remove = (): void => {
   emit('remove')
 }
 
-const setFill = (pcm: any): void => {
+const setFill = (pcm: PcmEntity): void => {
   props.node.setPcm(pcm)
   change()
 }

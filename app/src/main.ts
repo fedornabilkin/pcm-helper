@@ -2,10 +2,13 @@ import {createApp} from 'vue';
 import {router} from './router';
 
 import App from './App.vue';
+import {useTheme} from "@/core/composable/theme/useTheme";
 
 import '@fortawesome/fontawesome-free/css/all.css';
 import 'bulma/css/bulma.css';
 import '@/assets/bulma/root-custom.css'
+
+useTheme().applyTheme()
 
 const app = createApp(App)
 

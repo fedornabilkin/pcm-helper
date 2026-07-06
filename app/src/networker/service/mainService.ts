@@ -1,23 +1,23 @@
 export class MainService {
 
-  resetIds(items: []): void {
-    items.map((i: any) => {
-      if(!i.id) {
-        i.id = this.nextId(items)
+  resetIds<T extends {id?: number}>(items: T[]): void {
+    items.forEach((item: T) => {
+      if(!item.id) {
+        item.id = this.nextId(items)
       }
     })
   }
 
-  nextId(items: []): number {
+  nextId<T extends {id?: number}>(items: T[]): number {
     if (items.length < 1) return 1
-    const ids: number[] = items.map((i: any) => i.id ?? 0)
+    const ids: number[] = items.map((item: T) => item.id ?? 0)
     const max: number = Math.max(...ids)
     return max+1
   }
 
-  createDebounce() {
+  createDebounce(): (callback: () => void, delay: number) => void {
     let timeout: number|undefined = undefined
-    return function (callback: any, delay: number) {
+    return function (callback: () => void, delay: number) {
       clearTimeout(timeout)
       timeout = setTimeout(() => {
         callback()

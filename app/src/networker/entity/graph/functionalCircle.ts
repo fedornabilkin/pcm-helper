@@ -2,6 +2,7 @@
 
 export class FunctionalCircle extends MainEntity{
   id: number = 0
+  nodeId: number = 0
   name: string = ''
 
   r: number = 100

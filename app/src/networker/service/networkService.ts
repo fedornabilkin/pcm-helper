@@ -25,7 +25,6 @@ export class NetworkService extends MainService{
     this.networkBuilder.build({id: this.nextId(this.networks), name})
     const network = this.networkBuilder.getEntity()
     this.networks.push(network)
-    console.log('ans')
     return network
   }
 

@@ -90,8 +90,15 @@ export class CircleBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.nodeId = data.nodeId
     this.entity.name = data.name
     this.entity.r = data.r
+    if (data.fill) {
+      this.entity.fill = data.fill
+    }
+    if (data.stroke) {
+      this.entity.stroke = data.stroke
+    }
   }
 }
 

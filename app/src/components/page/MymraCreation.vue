@@ -5,6 +5,7 @@ import SettingGraph from "@/networker/components/SettingGraph.vue";
 import NetworkList from "@/networker/components/NetworkList.vue";
 import FunctionalCircleCard from "@/networker/components/FunctionalCircleCard.vue";
 import {DrawNetwork} from "@/networker/graph/draw";
+import type {Tag} from "@/networker/entity/graph/tag";
 import {Node} from "@/networker/entity/graph/node";
 import {Link} from "@/networker/entity/graph/link";
 import {Network} from "@/networker/entity/graph/network";
@@ -12,6 +13,7 @@ import {GraphService} from "@/networker/service/graphService";
 import {NetworkService} from "@/networker/service/networkService";
 import NodeCard from "@/networker/components/NodeCard.vue";
 import LinkCard from "@/networker/components/LinkCard.vue";
+import TagManager from "@/networker/components/TagManager.vue";
 import {NodeToolTip} from "@/networker/graph/toolTip";
 import {JsonFileAdapter} from "@/networker/service/transfer/fileAdapter";
 
@@ -34,6 +36,8 @@ watch(
       graphService = new GraphService({storeId: networkId.value});
       links.value = graphService.links
       funcCircle.value = graphService.funcCircles
+      activeTagId.value = null
+      draw.setActiveTagId(null)
       selectedNode.value = undefined
       reRender()
     }
@@ -83,6 +87,7 @@ const change = (): void => {
 
 const addNode = (): void => {
   selectedNode.value = graphService.addNode();
+  graphService.setCurrentNode(selectedNode.value)
   reRender()
 }
 
@@ -124,7 +129,12 @@ const changeFact = (): void => {
 }
 
 const changeTag = (): void => {
+  if (activeTagId.value !== null && !graphService.tags.some((tag: Tag): boolean => tag.id === activeTagId.value)) {
+    activeTagId.value = null
+    draw.setActiveTagId(null)
+  }
   saveAll();
+  reRender();
 }
 
 const importNetwork = (): void => {
@@ -136,6 +146,7 @@ const graphHost = ref<HTMLElement | null>(null)
 const importFileInput = ref<HTMLInputElement | null>(null)
 const pageHeight = ref(720)
 const activeInfoPanel = ref<string | null>(null)
+const activeTagId = ref<number | null>(null)
 const selectedNode = ref<Node | undefined>(undefined)
 const isTransferModalOpen = ref(false)
 let isGraphRendered = false
@@ -181,6 +192,12 @@ const renderGraph = (): void => {
 
 const toggleInfoPanel = (panelName: string): void => {
   activeInfoPanel.value = activeInfoPanel.value === panelName ? null : panelName
+}
+
+const selectTag = (tag: Tag): void => {
+  activeTagId.value = activeTagId.value === tag.id ? null : tag.id
+  draw.setActiveTagId(activeTagId.value)
+  reRender()
 }
 
 const hideNodeControl = (): void => {
@@ -279,19 +296,17 @@ onBeforeUnmount((): void => {
           button.button.is-small.is-light(type="button" title="Импорт и экспорт сети" @click="openTransferModal")
             span.icon
               i.fa.fa-file-arrow-down
+          button.button.is-small.is-info(type="button" title="Добавить контакт" @click="addNode")
+            span.icon
+              i.fa.fa-user-plus
+            span Добавить контакт
       .saved.tag.is-success.is-light(v-if="isSaved") Сохранено {{ new Date() }}
 
     aside.node-control-panel(v-if="selectedNode")
-      .node-control-header
-        button.button.is-small.is-light(type="button" @click="hideNodeControl")
-          span.icon
-            i.fa.fa-eye-slash
-          span Скрыть
       setting-graph.setting-graph(
         :graph-service="graphService"
         :links="links"
         @change="change"
-        @addNode="addNode"
         @removeNode="removeNode"
         @changeLink="changeLink"
         @changeFact="changeFact"
@@ -300,27 +315,64 @@ onBeforeUnmount((): void => {
       )
 
     .info-dock
-      .notification.is-light.data-note
-        | Данные хранятся в браузере и сохраняются автоматически.
       .info-actions
-        button.button.is-small(:class="{'is-info': activeInfoPanel === 'circle'}" @click="toggleInfoPanel('circle')")
+        button.button.is-small.is-light(
+          :class="{'is-info': activeInfoPanel === 'data'}"
+          type="button"
+          title="Информация"
+          @click="toggleInfoPanel('data')"
+        )
+          span.icon
+            i.fa.fa-circle-info
+        button.button.is-small.is-light(
+          :class="{'is-info': activeInfoPanel === 'circle'}"
+          type="button"
+          title="Круги"
+          @click="toggleInfoPanel('circle')"
+        )
           span.icon
             i.fa.fa-circle-nodes
-          span Круги
-        button.button.is-small(:class="{'is-info': activeInfoPanel === 'node'}" @click="toggleInfoPanel('node')")
+        button.button.is-small.is-light(
+          :class="{'is-info': activeInfoPanel === 'node'}"
+          type="button"
+          title="Узлы"
+          @click="toggleInfoPanel('node')"
+        )
           span.icon
             i.fa.fa-user
-          span Узлы
-        button.button.is-small(:class="{'is-info': activeInfoPanel === 'link'}" @click="toggleInfoPanel('link')")
+        button.button.is-small.is-light(
+          :class="{'is-info': activeInfoPanel === 'link'}"
+          type="button"
+          title="Связи"
+          @click="toggleInfoPanel('link')"
+        )
           span.icon
             i.fa.fa-link
-          span Связи
+        button.button.is-small.is-light(
+          :class="{'is-info': activeInfoPanel === 'tag'}"
+          type="button"
+          title="Теги"
+          @click="toggleInfoPanel('tag')"
+        )
+          span.icon
+            i.fa.fa-tags
 
       .info-panel(v-if="activeInfoPanel")
-        button.delete.info-close(type="button" aria-label="close" @click="activeInfoPanel = null")
-        FunctionalCircleCard(v-if="activeInfoPanel === 'circle'")
-        NodeCard(v-if="activeInfoPanel === 'node'")
-        LinkCard(v-if="activeInfoPanel === 'link'")
+        .info-panel-header
+          button.delete(type="button" aria-label="close" @click="activeInfoPanel = null")
+        .info-panel-body
+          .notification.is-light.data-note(v-if="activeInfoPanel === 'data'")
+            | Данные хранятся в браузере и сохраняются автоматически.
+          FunctionalCircleCard(v-if="activeInfoPanel === 'circle'")
+          NodeCard(v-if="activeInfoPanel === 'node'")
+          LinkCard(v-if="activeInfoPanel === 'link'")
+          TagManager(
+            v-if="activeInfoPanel === 'tag'"
+            :graph-service="graphService"
+            :active-tag-id="activeTagId"
+            @change="changeTag"
+            @select="selectTag"
+          )
 
   .modal(:class="{'is-active': isTransferModalOpen}")
     .modal-background(@click="closeTransferModal")
@@ -347,7 +399,7 @@ onBeforeUnmount((): void => {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: #f5f5f5;
+  background: var(--app-background);
 }
 
 .network-scene,
@@ -397,10 +449,10 @@ onBeforeUnmount((): void => {
 .network-menu {
   max-width: min(720px, 100%);
   padding: 0.5rem 0.75rem;
-  border: 1px solid hsl(0deg 0% 86%);
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  background: hsl(0deg 0% 100% / 94%);
-  box-shadow: 0 0.5rem 1.5rem hsl(0deg 0% 4% / 12%);
+  background: var(--app-surface-soft);
+  box-shadow: var(--app-shadow);
   pointer-events: auto;
 }
 
@@ -417,6 +469,7 @@ onBeforeUnmount((): void => {
 .network-menu-actions {
   display: flex;
   align-items: center;
+  gap: 0.35rem;
   padding-top: 0.1rem;
 }
 
@@ -446,16 +499,10 @@ onBeforeUnmount((): void => {
   max-height: none;
   overflow: auto;
   padding: 0.75rem;
-  border: 1px solid hsl(0deg 0% 86%);
+  border: 1px solid var(--app-border);
   border-radius: 6px 0 0 6px;
-  background: hsl(0deg 0% 100% / 94%);
-  box-shadow: 0 0.5rem 1.5rem hsl(0deg 0% 4% / 12%);
-}
-
-.node-control-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 0.5rem;
+  background: var(--app-surface-soft);
+  box-shadow: var(--app-shadow);
 }
 
 .node-control-panel .message {
@@ -468,12 +515,8 @@ onBeforeUnmount((): void => {
 
 .info-dock {
   left: 0.35rem;
-  right: 0.75rem;
   bottom: 0.35rem;
-  display: grid;
-  grid-template-columns: minmax(14rem, 1fr) auto;
-  align-items: end;
-  gap: 0.75rem;
+  width: min(520px, calc(100vw - 0.7rem));
   pointer-events: none;
 }
 
@@ -483,38 +526,60 @@ onBeforeUnmount((): void => {
   pointer-events: auto;
 }
 
-.data-note {
-  width: fit-content;
-  max-width: min(320px, 100%);
-  margin-bottom: 0 !important;
-  padding: 0.3rem 0.45rem;
-  border-radius: 6px;
-  font-size: 0.78rem;
-  line-height: 1.2;
-}
-
 .info-actions {
+  width: fit-content;
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  background: var(--app-surface-soft);
+  box-shadow: var(--app-shadow);
 }
 
 .info-panel {
   position: absolute;
-  right: 0;
-  bottom: 2.75rem;
+  left: 0;
+  bottom: 2.55rem;
   width: min(520px, 100%);
   max-height: min(62vh, 560px);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--app-border);
   border-radius: 6px;
-  box-shadow: 0 0.75rem 2rem hsl(0deg 0% 4% / 18%);
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
 }
 
-.info-close {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 2;
+.info-panel-header {
+  display: flex;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  padding: 0.5rem 0.5rem 0.25rem;
+  background: var(--app-surface);
+}
+
+.info-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.data-note {
+  margin-bottom: 0 !important;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.info-panel .message,
+.info-panel .card,
+.info-panel .notification {
+  margin-bottom: 0;
 }
 
 @media screen and (max-width: 768px) {
@@ -530,7 +595,8 @@ onBeforeUnmount((): void => {
   }
 
   .info-dock {
-    grid-template-columns: 1fr;
+    right: 0.35rem;
+    width: auto;
   }
 
   .info-actions {
