@@ -1,9 +1,10 @@
-import type {GraphLinkDTO, GraphNodeDTO, FunctionalCircleDTO, NetworkGraphDTO} from "@/networker/graph/types";
+import type {GraphLinkDTO, GraphNodeDTO, FunctionalCircleDTO, NetworkGraphDTO, TagDTO} from "@/networker/graph/types";
 
 export class DataTransfer {
   circles: FunctionalCircleDTO[] = []
   nodes: GraphNodeDTO[] = []
   links: GraphLinkDTO[] = []
+  tags: TagDTO[] = []
 
   constructor(config: NetworkGraphDTO = {}) {
     Object.assign(this, config)
@@ -19,5 +20,9 @@ export class DataTransfer {
 
   getLinks(): GraphLinkDTO[] {
     return this.links
+  }
+
+  getTags(): TagDTO[] {
+    return this.tags
   }
 }

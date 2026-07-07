@@ -294,11 +294,12 @@ export class GraphService extends MainService{
       nodes: this.nodes,
       links: this.links,
       circles: this.funcCircles,
+      tags: this.tags,
     });
   }
 
   fromDTO(dto: DataTransfer): void {
-    this.importCollections(dto.nodes, dto.links, dto.circles)
+    this.importCollections(dto.nodes, dto.links, dto.circles, dto.tags)
   }
 
   saveAll(): void {

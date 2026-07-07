@@ -6,9 +6,28 @@ export interface IFileAdapter {
   import(data: string | ArrayBuffer): DataTransfer;
 }
 
+export interface JsonFileAdapterMeta {
+  version: string;
+  exportedAt: string;
+  networkName?: string;
+}
+
 export class JsonFileAdapter implements IFileAdapter {
+  private readonly meta?: Partial<JsonFileAdapterMeta>
+
+  constructor(meta?: Partial<JsonFileAdapterMeta>) {
+    this.meta = meta
+  }
+
   export(dto: DataTransfer): string {
-    return JSON.stringify(dto);
+    return JSON.stringify({
+      meta: {
+        version: this.meta?.version ?? '1.0.0',
+        exportedAt: this.meta?.exportedAt ?? new Date().toISOString(),
+        networkName: this.meta?.networkName,
+      },
+      payload: dto,
+    });
   }
 
   import(data: string | ArrayBuffer): DataTransfer {
@@ -17,6 +36,6 @@ export class JsonFileAdapter implements IFileAdapter {
     }
 
     const obj = parseJsonOrThrow(data, 'Imported network file contains invalid JSON.');
-    return new DataTransfer(obj);
+    return new DataTransfer(obj?.payload ?? obj);
   }
 }

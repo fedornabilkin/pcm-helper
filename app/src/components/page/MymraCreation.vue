@@ -16,6 +16,7 @@ import LinkCard from "@/networker/components/LinkCard.vue";
 import TagManager from "@/networker/components/TagManager.vue";
 import {NodeToolTip} from "@/networker/graph/toolTip";
 import {JsonFileAdapter} from "@/networker/service/transfer/fileAdapter";
+import packageJson from "../../../package.json";
 
 const router = useRouter()
 let networkId = ref(0)
@@ -215,7 +216,11 @@ const closeTransferModal = (): void => {
 }
 
 const exportNetworkFile = (): void => {
-  graphService.setFileAdapter(new JsonFileAdapter())
+  graphService.setFileAdapter(new JsonFileAdapter({
+    version: packageJson.version,
+    exportedAt: new Date().toISOString(),
+    networkName: currentNetwork.value?.name ?? 'Основная',
+  }))
   const dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(graphService.export());
   const anchorElement = document.createElement('a');
   anchorElement.href = dataUri;
