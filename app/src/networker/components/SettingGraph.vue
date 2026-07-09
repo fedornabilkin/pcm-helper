@@ -32,6 +32,9 @@ const aiService = new PcmTypeAiService()
 const aiText = ref('')
 const aiSummary = ref('')
 const isAiLoading = ref(false)
+const isTranscribing = ref(false)
+const transcriptionError = ref('')
+const transcriptionInterimText = ref('')
 const aiCooldownSeconds = ref(0)
 const currentAiRequestId = ref('')
 const aiQueueStatus = ref<AiQueueStatus>({
@@ -49,6 +52,7 @@ const aiQueueSocket = new AiQueueSocketService(
 )
 let unsubscribeAiQueue: (() => void) | undefined
 let aiCooldownTimer: number | undefined
+let speechRecognition: any
 
 
 const setActiveTab = (idx: number): void => {
@@ -114,6 +118,16 @@ const isAiSubmitDisabled = computed((): boolean => {
   return !aiText.value.trim() || isAiLoading.value || aiCooldownSeconds.value > 0
 })
 
+const speechRecognitionConstructor = computed((): any => {
+  if (typeof window === 'undefined') {
+    return undefined
+  }
+
+  return (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
+})
+
+const isTranscriptionSupported = computed((): boolean => Boolean(speechRecognitionConstructor.value))
+
 const aiQueuePosition = computed((): number | null => {
   return aiQueueStatus.value.currentRequestPosition
 })
@@ -177,9 +191,69 @@ const detectPcmType = async (): Promise<void> => {
 const clearAiForm = (): void => {
   aiText.value = ''
   aiSummary.value = ''
+  transcriptionError.value = ''
+  transcriptionInterimText.value = ''
   currentAiRequestId.value = ''
   aiQueueSocket.setCurrentRequestId('')
   aiQueueSocket.requestStatus()
+}
+
+const appendTranscribedText = (text: string): void => {
+  const value = text.trim()
+  if (!value) {
+    return
+  }
+
+  aiText.value = `${aiText.value.trim()} ${value}`.trim()
+}
+
+const startTranscription = (): void => {
+  if (!isTranscriptionSupported.value || isTranscribing.value) {
+    return
+  }
+
+  transcriptionError.value = ''
+  transcriptionInterimText.value = ''
+  speechRecognition = new speechRecognitionConstructor.value()
+  speechRecognition.lang = 'ru-RU'
+  speechRecognition.continuous = true
+  speechRecognition.interimResults = true
+
+  speechRecognition.onresult = (event: any): void => {
+    let finalText = ''
+    let interimText = ''
+
+    for (let index = event.resultIndex; index < event.results.length; index += 1) {
+      const transcript = event.results[index][0]?.transcript ?? ''
+
+      if (event.results[index].isFinal) {
+        finalText += transcript
+      } else {
+        interimText += transcript
+      }
+    }
+
+    appendTranscribedText(finalText)
+    transcriptionInterimText.value = interimText.trim()
+  }
+
+  speechRecognition.onerror = (event: any): void => {
+    transcriptionError.value = event?.error ? `Ошибка транскрибации: ${event.error}` : 'Ошибка транскрибации.'
+    isTranscribing.value = false
+  }
+
+  speechRecognition.onend = (): void => {
+    isTranscribing.value = false
+    transcriptionInterimText.value = ''
+  }
+
+  isTranscribing.value = true
+  speechRecognition.start()
+}
+
+const stopTranscription = (): void => {
+  isTranscribing.value = false
+  speechRecognition?.stop()
 }
 
 onMounted(() => {
@@ -190,6 +264,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  stopTranscription()
+
   if (aiCooldownTimer) {
     window.clearInterval(aiCooldownTimer)
   }
@@ -274,8 +350,22 @@ onBeforeUnmount(() => {
               rows="7"
               placeholder="Вставьте фрагмент речи, переписки или заметки контакта"
             )
+          .transcription-tools
+            span.help(v-if="!isTranscriptionSupported") Браузер не поддерживает транскрибацию.
+            span.help.has-text-info(v-if="transcriptionInterimText") {{ transcriptionInterimText }}
+            span.help.is-danger(v-if="transcriptionError") {{ transcriptionError }}
         .field
           .control.ai-action-buttons
+            button.button(
+              type="button"
+              :class="isTranscribing ? 'is-danger' : 'is-light'"
+              :disabled="!isTranscriptionSupported"
+              :title="isTranscribing ? 'Остановить транскрибацию' : 'Начать транскрибацию'"
+              @click="isTranscribing ? stopTranscription() : startTranscription()"
+            )
+              span.icon
+                i.fa(:class="isTranscribing ? 'fa-stop' : 'fa-microphone'")
+              span Голосовой набор
             button.button.is-info.is-fullwidth(
               type="button"
               :class="{'is-loading': isAiLoading}"
@@ -312,6 +402,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .ai-type-tool {
   width: 100%;
+  min-width: 0;
 }
 
 .ai-queue-status {
@@ -319,6 +410,14 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.35rem;
+  min-width: 0;
+}
+
+.ai-queue-status .tag {
+  max-width: 100%;
+  white-space: normal;
+  height: auto;
+  min-height: 2em;
 }
 
 .ai-text-header {
@@ -335,17 +434,56 @@ onBeforeUnmount(() => {
 
 .ai-action-buttons {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   gap: 0.5rem;
+}
+
+.ai-action-buttons .button {
+  min-width: 0;
+}
+
+.transcription-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 @media screen and (max-width: 520px) {
   .ai-text-header {
     grid-template-columns: 1fr;
+    gap: 0.35rem;
   }
 
   .ai-queue-status {
     justify-content: flex-start;
+  }
+
+  .ai-action-buttons {
+    grid-template-columns: 1fr auto;
+  }
+
+  .ai-action-buttons .button.is-info {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .ai-action-buttons .button:not(.is-info) {
+    grid-row: 1;
+  }
+
+  .ai-action-buttons .button span:not(.icon) {
+    white-space: normal;
+  }
+
+  .ai-type-tool .textarea {
+    min-height: 9rem;
+  }
+
+  .panel-block {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 }
 
