@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import {nextTick, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import {useRouter} from "vue-router";
 import SettingGraph from "@/networker/components/SettingGraph.vue";
 import NetworkList from "@/networker/components/NetworkList.vue";
@@ -29,6 +29,7 @@ let networkService = new NetworkService({storeId: networkId.value});
 const links = ref(graphService.links);
 const funcCircle = ref(graphService.funcCircles);
 const networks = ref(networkService.networks);
+const graphRevision = ref(0)
 
 watch(
     () => router.currentRoute.value.params.id,
@@ -40,6 +41,7 @@ watch(
       activeTagId.value = null
       draw.setActiveTagId(null)
       selectedNode.value = undefined
+      clearNodeSearch()
       reRender()
     }
 )
@@ -66,6 +68,7 @@ const draw: DrawNetwork = new DrawNetwork({
 const debounceReRender = graphService.createDebounce()
 const reRender = (): void => {
   isLoading.value = true
+  graphRevision.value += 1
   draw.dto = graphService.toDTO();
   debounceReRender(() => {draw.reRender()}, 750)
 }
@@ -150,7 +153,57 @@ const activeInfoPanel = ref<string | null>(null)
 const activeTagId = ref<number | null>(null)
 const selectedNode = ref<Node | undefined>(undefined)
 const isTransferModalOpen = ref(false)
+const nodeSearchQuery = ref('')
+const selectedSearchNodeId = ref<number | null>(null)
+const isNodeSearchOpen = ref(false)
 let isGraphRendered = false
+
+const matchingSearchNodes = computed((): Node[] => {
+  graphRevision.value
+  const query = nodeSearchQuery.value.trim().toLocaleLowerCase('ru-RU')
+
+  if (!query) {
+    return [...graphService.nodes]
+  }
+
+  return graphService.nodes.filter((node: Node): boolean => {
+    const searchableText = `${node.getName()} ${node.description ?? ''}`.toLocaleLowerCase('ru-RU')
+    return searchableText.includes(query)
+  })
+})
+
+const visibleSearchNodes = computed((): Node[] => matchingSearchNodes.value.slice(0, 8))
+
+const updateSearchHighlight = (): void => {
+  if (selectedSearchNodeId.value !== null) {
+    const selectedNodeExists = graphService.nodes.some(
+      (node: Node): boolean => node.id === selectedSearchNodeId.value,
+    )
+
+    if (selectedNodeExists) {
+      draw.setSearchHighlightedNodeIds([selectedSearchNodeId.value])
+      return
+    }
+
+    selectedSearchNodeId.value = null
+  }
+
+  if (!nodeSearchQuery.value.trim()) {
+    draw.setSearchHighlightedNodeIds([])
+    return
+  }
+
+  draw.setSearchHighlightedNodeIds(
+    matchingSearchNodes.value
+      .map((node: Node): number | undefined => node.id)
+      .filter((id: number | undefined): id is number => id !== undefined),
+  )
+}
+
+watch(
+  [nodeSearchQuery, selectedSearchNodeId, graphRevision],
+  updateSearchHighlight,
+)
 
 const updatePageHeight = (): void => {
   const top = pageElement.value?.getBoundingClientRect().top ?? 0
@@ -207,6 +260,42 @@ const hideNodeControl = (): void => {
   reRender()
 }
 
+const handleNodeSearchInput = (): void => {
+  selectedSearchNodeId.value = null
+  isNodeSearchOpen.value = true
+}
+
+const selectSearchNode = (node: Node): void => {
+  nodeSearchQuery.value = node.getName()
+  selectedSearchNodeId.value = node.id ?? null
+  isNodeSearchOpen.value = false
+}
+
+const selectFirstSearchNode = (): void => {
+  const firstNode = visibleSearchNodes.value[0]
+  if (firstNode) {
+    selectSearchNode(firstNode)
+  }
+}
+
+const clearNodeSearch = (): void => {
+  nodeSearchQuery.value = ''
+  selectedSearchNodeId.value = null
+  isNodeSearchOpen.value = false
+  draw.setSearchHighlightedNodeIds([])
+}
+
+const addNodeFromSearch = (): void => {
+  clearNodeSearch()
+  addNode()
+}
+
+const closeNodeSearch = (): void => {
+  window.setTimeout((): void => {
+    isNodeSearchOpen.value = false
+  }, 100)
+}
+
 const openTransferModal = (): void => {
   isTransferModalOpen.value = true
 }
@@ -215,19 +304,37 @@ const closeTransferModal = (): void => {
   isTransferModalOpen.value = false
 }
 
+const formatExportFileDateTime = (date: Date): string => {
+  const pad = (value: number): string => String(value).padStart(2, '0')
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('-') + '_' + [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join('-')
+}
+
 const exportNetworkFile = (): void => {
+  const exportedAt = new Date()
+
   graphService.setFileAdapter(new JsonFileAdapter({
     version: packageJson.version,
-    exportedAt: new Date().toISOString(),
+    exportedAt: exportedAt.toISOString(),
+    exportedAtReadable: exportedAt.toLocaleString('ru-RU'),
     networkName: currentNetwork.value?.name ?? 'Основная',
   }))
   const dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(graphService.export());
   const anchorElement = document.createElement('a');
   anchorElement.href = dataUri;
-  anchorElement.download = `pcm-helper-${(new Date()).getTime()}.json`;
+  anchorElement.download = `pcm-helper-${formatExportFileDateTime(exportedAt)}.json`;
   document.body.appendChild(anchorElement);
   anchorElement.click();
   document.body.removeChild(anchorElement);
+  closeTransferModal()
 }
 
 const selectImportFile = (): void => {
@@ -307,6 +414,56 @@ onBeforeUnmount((): void => {
               i.fa.fa-user-plus
             span Добавить контакт
       .saved.tag.is-success.is-light(v-if="isSaved") Сохранено {{ new Date() }}
+
+    form.node-search(@submit.prevent="selectFirstSearchNode")
+      .field.has-addons
+        .control.is-expanded.has-icons-left
+          input.input.is-small(
+            v-model="nodeSearchQuery"
+            type="search"
+            placeholder="Поиск по узлам"
+            autocomplete="off"
+            aria-label="Поиск по узлам"
+            aria-autocomplete="list"
+            :aria-expanded="isNodeSearchOpen"
+            @focus="isNodeSearchOpen = true"
+            @input="handleNodeSearchInput"
+            @blur="closeNodeSearch"
+            @keydown.esc="isNodeSearchOpen = false"
+          )
+          span.icon.is-small.is-left
+            i.fa.fa-magnifying-glass
+        .control(v-if="nodeSearchQuery")
+          button.button.is-small(
+            type="button"
+            title="Очистить поиск"
+            aria-label="Очистить поиск"
+            @mousedown.prevent
+            @click="clearNodeSearch"
+          )
+            span.icon.is-small
+              i.fa.fa-xmark
+      .node-search-dropdown(v-if="isNodeSearchOpen")
+        button.node-search-option(
+          v-for="node in visibleSearchNodes"
+          :key="node.id"
+          type="button"
+          @mousedown.prevent="selectSearchNode(node)"
+        )
+          span.node-search-option-name {{ node.getName() || `Узел ${node.id}` }}
+          span.node-search-option-description(v-if="node.description") {{ node.description }}
+        .node-search-empty(v-if="visibleSearchNodes.length === 0")
+          span Ничего не найдено
+          button.button.is-small.is-info(
+            type="button"
+            @mousedown.prevent
+            @click="addNodeFromSearch"
+          )
+            span.icon.is-small
+              i.fa.fa-user-plus
+            span Добавить
+        .node-search-more(v-else-if="matchingSearchNodes.length > visibleSearchNodes.length")
+          | Ещё {{ matchingSearchNodes.length - visibleSearchNodes.length }}
 
     setting-graph.node-control-panel(
       v-if="selectedNode"
@@ -407,14 +564,23 @@ onBeforeUnmount((): void => {
         p.modal-card-title Импорт и экспорт сети
         button.delete(type="button" aria-label="close" @click="closeTransferModal")
       section.modal-card-body
-        p Данные сети хранятся в браузере. Экспорт сохранит текущую сеть в JSON-файл, импорт заменит текущие данные содержимым выбранного файла.
-        input.is-hidden(ref="importFileInput" type="file" accept="application/json,.json" @change="importNetworkFile")
-      footer.modal-card-foot
+        .columns.transfer-columns
+          .column.transfer-column
+            h3.title.is-5 Экспорт
+            p Сохранит текущую сеть в JSON-файл с датой и временем создания.
+          .column.transfer-column
+            h3.title.is-5 Импорт
+            p Заменит данные текущей сети содержимым выбранного JSON-файла.
+            .notification.is-warning.is-light.import-warning
+              strong Важно:
+              |  старые данные будут безвозвратно утеряны.
+            input.is-hidden(ref="importFileInput" type="file" accept="application/json,.json" @change="importNetworkFile")
+      footer.modal-card-foot.transfer-modal-actions
         button.button.is-info(type="button" @click="exportNetworkFile")
           span.icon
             i.fa.fa-file-export
           span Экспорт
-        button.button.is-warning(type="button" @click="selectImportFile")
+        button.button.is-warning.import-action(type="button" @click="selectImportFile")
           span.icon
             i.fa.fa-file-import
           span Импорт
@@ -455,7 +621,28 @@ onBeforeUnmount((): void => {
   z-index: 10;
 }
 
+.graph-container .nodes circle.is-search-highlighted {
+  animation: node-search-pulse 1.6s ease-in-out infinite;
+  vector-effect: non-scaling-stroke;
+}
+
+@keyframes node-search-pulse {
+  0%,
+  100% {
+    stroke: var(--app-search-highlight);
+    stroke-width: 5px;
+    filter: drop-shadow(0 0 1px var(--app-search-highlight));
+  }
+
+  50% {
+    stroke: var(--app-search-highlight);
+    stroke-width: 11px;
+    filter: drop-shadow(0 0 7px var(--app-search-highlight));
+  }
+}
+
 .workspace-topbar,
+.node-search,
 .node-control-panel,
 .info-dock {
   position: absolute;
@@ -517,6 +704,78 @@ onBeforeUnmount((): void => {
   pointer-events: none;
 }
 
+.node-search {
+  top: 0.5rem;
+  left: 50%;
+  z-index: 6;
+  width: min(380px, calc(100vw - 1rem));
+  transform: translateX(-50%);
+}
+
+.node-search .field {
+  margin-bottom: 0;
+  filter: drop-shadow(0 0.25rem 0.6rem rgb(0 0 0 / 12%));
+}
+
+.node-search-dropdown {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  width: 100%;
+  max-height: min(50vh, 320px);
+  overflow-y: auto;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
+}
+
+.node-search-option {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--app-border);
+  background: transparent;
+  color: var(--app-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.node-search-option:hover,
+.node-search-option:focus {
+  background: var(--app-surface-muted);
+  outline: none;
+}
+
+.node-search-option-name {
+  font-weight: 600;
+}
+
+.node-search-option-description {
+  overflow: hidden;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-search-empty,
+.node-search-more {
+  padding: 0.6rem 0.75rem;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+}
+
+.node-search-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .node-control-panel {
   top: 0;
   right: 0;
@@ -537,7 +796,32 @@ onBeforeUnmount((): void => {
 }
 
 .transfer-modal {
-  max-width: min(520px, calc(100vw - 2rem));
+  width: min(720px, calc(100vw - 2rem));
+}
+
+.transfer-columns {
+  margin-bottom: 0;
+}
+
+.transfer-column + .transfer-column {
+  border-left: 1px solid var(--app-border);
+}
+
+.transfer-column .title {
+  color: var(--app-text);
+}
+
+.import-warning {
+  margin-top: 1rem;
+  margin-bottom: 0 !important;
+}
+
+.transfer-modal-actions {
+  width: 100%;
+}
+
+.transfer-modal-actions .import-action {
+  margin-left: auto;
 }
 
 .info-dock {
@@ -612,6 +896,11 @@ onBeforeUnmount((): void => {
     max-height: 100dvh;
   }
 
+  .node-search {
+    top: 4.5rem;
+    width: min(380px, calc(100vw - 1rem));
+  }
+
   .info-dock {
     right: 0.35rem;
     width: auto;
@@ -624,6 +913,11 @@ onBeforeUnmount((): void => {
 
   .info-panel {
     width: auto;
+  }
+
+  .transfer-column + .transfer-column {
+    border-top: 1px solid var(--app-border);
+    border-left: 0;
   }
 }
 </style>

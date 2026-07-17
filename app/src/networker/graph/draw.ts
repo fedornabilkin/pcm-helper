@@ -36,6 +36,7 @@ export class DrawNetwork {
   toolTipBox: any;
   toolTip: ToolTip|null;
   activeTagId: number | null = null;
+  searchHighlightedNodeIds: Set<number> = new Set();
 
   clickNode = (e: any, d: Node) => {}
   clickLink = (e: any, d: Node) => {}
@@ -78,11 +79,59 @@ export class DrawNetwork {
 
   setActiveTagId(tagId: number | null): this {
     this.activeTagId = tagId
+    this.refreshTagHighlight()
     return this
   }
 
   isNodeInActiveTag(node: Node): boolean {
     return this.activeTagId !== null && node.tags.includes(this.activeTagId)
+  }
+
+  setSearchHighlightedNodeIds(nodeIds: Iterable<number>): this {
+    this.searchHighlightedNodeIds = new Set(nodeIds)
+    this.refreshSearchHighlight()
+    return this
+  }
+
+  isNodeSearchHighlighted(node: Node): boolean {
+    return node.id !== undefined && this.searchHighlightedNodeIds.has(node.id)
+  }
+
+  getNodeStroke(node: Node): string {
+    if (this.isNodeInActiveTag(node)) {
+      return 'var(--app-tag-highlight)'
+    }
+
+    return node.getStroke()
+  }
+
+  getNodeStrokeWidth(node: Node): string {
+    if (this.isNodeInActiveTag(node)) {
+      return '8'
+    }
+
+    return node.getStrokeWidth()
+  }
+
+  refreshTagHighlight(): void {
+    if (!this.nodes) {
+      return
+    }
+
+    this.nodes
+      .style("stroke", (d: Node): string => this.getNodeStroke(d))
+      .style("stroke-width", (d: Node): string => this.getNodeStrokeWidth(d))
+  }
+
+  refreshSearchHighlight(): void {
+    if (!this.nodes) {
+      return
+    }
+
+    this.nodes.classed(
+      'is-search-highlighted',
+      (d: Node): boolean => this.isNodeSearchHighlighted(d),
+    )
   }
 
   drawContainer(element: HTMLElement): this {
@@ -158,8 +207,9 @@ export class DrawNetwork {
       .join("circle")
       .attr("r", (d: Node): number => d.getRadius())
       .style("fill", (d: Node): string => d.getFill())
-      .style("stroke", (d: Node): string => this.isNodeInActiveTag(d) ? 'var(--app-tag-highlight)' : d.getStroke())
-      .style("stroke-width", (d: Node): string => this.isNodeInActiveTag(d) ? '8' : d.getStrokeWidth())
+      .style("stroke", (d: Node): string => this.getNodeStroke(d))
+      .style("stroke-width", (d: Node): string => this.getNodeStrokeWidth(d))
+      .classed('is-search-highlighted', (d: Node): boolean => this.isNodeSearchHighlighted(d))
       .call(this.drag(this.simulation))
       .on('click', this.clickNode)
       .on('mouseover', (e,d): void => {this.mouseOver(e,d)})

@@ -9,6 +9,7 @@ export interface IFileAdapter {
 export interface JsonFileAdapterMeta {
   version: string;
   exportedAt: string;
+  exportedAtReadable?: string;
   networkName?: string;
 }
 
@@ -24,6 +25,7 @@ export class JsonFileAdapter implements IFileAdapter {
       meta: {
         version: this.meta?.version ?? '1.0.0',
         exportedAt: this.meta?.exportedAt ?? new Date().toISOString(),
+        exportedAtReadable: this.meta?.exportedAtReadable,
         networkName: this.meta?.networkName,
       },
       payload: dto,

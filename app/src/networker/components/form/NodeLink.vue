@@ -9,11 +9,13 @@ const emit = defineEmits(['add', 'remove', 'change'])
 const linkModel = ref(undefined)
 const activeLinkIndex = ref(null)
 const unAvailableNodeIds = ref(new Set())
+const contactSearchQuery = ref('')
 
 watch(() => props.node, () => {
   unAvailableNodeIds.value.clear()
   linkModel.value = undefined
   activeLinkIndex.value = null
+  contactSearchQuery.value = ''
 })
 
 const setCurrentLink = (item: Link, index: any): void => {
@@ -34,6 +36,24 @@ const isActiveLink = (item: Link): boolean => {
 
 const isAvailableNode = (node: Node): boolean => {
   return !unAvailableNodeIds.value.has(node.id)
+}
+
+const matchesContactSearch = (node: Node): boolean => {
+  const query = contactSearchQuery.value.trim().toLocaleLowerCase('ru-RU')
+  if (!query) {
+    return true
+  }
+
+  const searchableText = `${node.getName()} ${node.description ?? ''}`.toLocaleLowerCase('ru-RU')
+  return searchableText.includes(query)
+}
+
+const getLinkedNode = (link: Link): Node => {
+  return link.source.id === props.node.id ? link.target : link.source
+}
+
+const matchesLinkSearch = (link: Link): boolean => {
+  return matchesContactSearch(getLinkedNode(link))
 }
 
 const change = (): void => {
@@ -82,6 +102,26 @@ const colors = [
 
 <template lang="pug">
   .is-block
+    .field.has-addons.link-search
+      .control.is-expanded.has-icons-left
+        input.input(
+          v-model="contactSearchQuery"
+          type="search"
+          placeholder="Поиск контактов"
+          autocomplete="off"
+          aria-label="Поиск контактов"
+        )
+        span.icon.is-small.is-left
+          i.fa.fa-magnifying-glass
+      .control(v-if="contactSearchQuery")
+        button.button(
+          type="button"
+          title="Очистить поиск"
+          aria-label="Очистить поиск"
+          @click="contactSearchQuery = ''"
+        )
+          span.icon.is-small
+            i.fa.fa-xmark
     .is-block(v-if="linkModel")
       .field.has-addons
         .control
@@ -100,7 +140,7 @@ const colors = [
       .column
         .field.is-grouped.is-grouped-multiline
           template(v-for="(link, index) in props.links")
-            .control(v-if="isActiveLink(link)")
+            .control(v-if="isActiveLink(link) && matchesLinkSearch(link)")
               .tags.has-addons
                 span.tag.is-hoverable(:class="{'is-dark': index === activeLinkIndex}" :key="index" @click="setCurrentLink(link, index)") {{ link.source.getName() }} -> {{ link.target.getName() }}
                 span.tag.is-delete.is-hoverable(@click="remove(link)")
@@ -108,13 +148,17 @@ const colors = [
       .column
         .field.is-grouped.is-grouped-multiline
           template(v-for="node in props.nodes")
-            .control(v-if="isAvailableNode(node)")
+            .control(v-if="isAvailableNode(node) && matchesContactSearch(node)")
               .tags.has-addons
                 span.tag(:class="{ 'is-dark': isCurrentNode(node) }") {{ node.getName() }}
                 span.tag.is-hoverable(v-if="!isCurrentNode(node)" @click="add(node)") +
 </template>
 
 <style scoped>
+.link-search {
+  width: 100%;
+}
+
 button.button.red {background-color: #ea3525; color: #ea3525;}
 button.button.green {background-color: #397f24; color: #397f24;}
 button.button.gray {background-color: #818181; color: #818181;}
