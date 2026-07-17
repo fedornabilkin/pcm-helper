@@ -97,30 +97,15 @@ export class DrawNetwork {
     return node.id !== undefined && this.searchHighlightedNodeIds.has(node.id)
   }
 
-  getNodeStroke(node: Node): string {
-    if (this.isNodeInActiveTag(node)) {
-      return 'var(--app-tag-highlight)'
-    }
-
-    return node.getStroke()
-  }
-
-  getNodeStrokeWidth(node: Node): string {
-    if (this.isNodeInActiveTag(node)) {
-      return '8'
-    }
-
-    return node.getStrokeWidth()
-  }
-
   refreshTagHighlight(): void {
     if (!this.nodes) {
       return
     }
 
-    this.nodes
-      .style("stroke", (d: Node): string => this.getNodeStroke(d))
-      .style("stroke-width", (d: Node): string => this.getNodeStrokeWidth(d))
+    this.nodes.classed(
+      'is-tag-highlighted',
+      (d: Node): boolean => this.isNodeInActiveTag(d),
+    )
   }
 
   refreshSearchHighlight(): void {
@@ -207,8 +192,9 @@ export class DrawNetwork {
       .join("circle")
       .attr("r", (d: Node): number => d.getRadius())
       .style("fill", (d: Node): string => d.getFill())
-      .style("stroke", (d: Node): string => this.getNodeStroke(d))
-      .style("stroke-width", (d: Node): string => this.getNodeStrokeWidth(d))
+      .style("stroke", (d: Node): string => d.getStroke())
+      .style("stroke-width", (d: Node): string => d.getStrokeWidth())
+      .classed('is-tag-highlighted', (d: Node): boolean => this.isNodeInActiveTag(d))
       .classed('is-search-highlighted', (d: Node): boolean => this.isNodeSearchHighlighted(d))
       .call(this.drag(this.simulation))
       .on('click', this.clickNode)

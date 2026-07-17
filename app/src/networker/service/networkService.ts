@@ -2,6 +2,10 @@
 import {Network} from "../entity/graph/network";
 import {useNetworkStore} from "../composable/networkStore";
 import {MainService} from "./mainService";
+import {clearGraphStore} from "../composable/graphStore";
+
+export const MAX_NETWORK_COUNT = 3
+const DEFAULT_NETWORK_COUNT = 1
 
 export class NetworkService extends MainService{
   private storeId: number = 0
@@ -21,8 +25,17 @@ export class NetworkService extends MainService{
     this.networks = this.networkBuilder.createCollection(this.networkStore.networks.value);
   }
 
-  addNetwork(name: string = 'Сетка'): Network {
-    this.networkBuilder.build({id: this.nextId(this.networks), name})
+  canAddNetwork(): boolean {
+    return this.networks.length + DEFAULT_NETWORK_COUNT < MAX_NETWORK_COUNT
+  }
+
+  addNetwork(name?: string): Network | undefined {
+    if (!this.canAddNetwork()) {
+      return undefined
+    }
+
+    const networkName = name?.trim() || `Сеть ${this.networks.length + DEFAULT_NETWORK_COUNT + 1}`
+    this.networkBuilder.build({id: this.nextId(this.networks), name: networkName})
     const network = this.networkBuilder.getEntity()
     this.networks.push(network)
     return network
@@ -30,7 +43,12 @@ export class NetworkService extends MainService{
 
   removeNetwork(network: Network): void {
     const index = this.networks.findIndex(n => n.id === network.id);
-    if (index !== -1) this.networks.splice(index, 1);
+    if (index === -1) {
+      return
+    }
+
+    clearGraphStore(network.id)
+    this.networks.splice(index, 1);
   }
 
   findNetwork(id: number): Network|undefined {

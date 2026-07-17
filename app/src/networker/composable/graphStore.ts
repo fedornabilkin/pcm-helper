@@ -1,15 +1,27 @@
 ﻿import {useLocalStore} from "../../core/composable/store/localStore";
 
-export function useGraphStore(id: string) {
-  const prefix: string = id
-  const keyNodes = `${prefix}-graph_nodes`
-  const keyLinks = `${prefix}-graph_links`
-  const keyFuncCircles = `${prefix}-graph_funcCircles`
-  const keyTags = `${prefix}-graph_tags`
-  const keyNetworkList = 'network-list'
+const getGraphStoreKeys = (id: string | number) => {
+  const prefix = String(id)
+
+  return {
+    nodes: `${prefix}-graph_nodes`,
+    links: `${prefix}-graph_links`,
+    funcCircles: `${prefix}-graph_funcCircles`,
+    tags: `${prefix}-graph_tags`,
+  }
+}
+
+export function clearGraphStore(id: string | number): void {
+  Object.values(getGraphStoreKeys(id)).forEach((key: string): void => {
+    localStorage.removeItem(key)
+  })
+}
+
+export function useGraphStore(id: string | number) {
+  const keys = getGraphStoreKeys(id)
   const {
     state: nodes, save: saveNodes, clear: clearNodes
-  } = useLocalStore(keyNodes, [
+  } = useLocalStore(keys.nodes, [
     {id:1,name:'Федор Набилкин'},
     {id:2,name:'Алексей Попович'},
     {id:3,name:'Тугарин Змей'},
@@ -17,13 +29,13 @@ export function useGraphStore(id: string) {
 
   const {
     state: links, save: saveLinks, clear: clearLinks
-  } = useLocalStore(keyLinks, [
+  } = useLocalStore(keys.links, [
     {id:1,source:1,target:2,distance:100},
   ]);
 
   const {
     state: funcCircles, save: saveFuncCircles, clear: clearFuncCircles
-  } = useLocalStore(keyFuncCircles, [
+  } = useLocalStore(keys.funcCircles, [
     {id: 1, nodeId: 1, name:'support', r: 100, fill: 'rgba(71,157,248,0.26)', stroke: 'rgba(71,157,248,0.55)'},
     {id: 2, nodeId: 1, name:'production', r: 250, fill: 'rgba(71,157,248,0.16)', stroke: 'rgba(71,157,248,0.38)'},
     {id: 3, nodeId: 1, name:'development', r: 400, fill: 'rgba(71,157,248,0.08)', stroke: 'rgba(71,157,248,0.24)'},
@@ -31,18 +43,13 @@ export function useGraphStore(id: string) {
 
   const {
     state: tags, save: saveTags, clear: clearTags
-  } = useLocalStore(keyTags, []);
-
-  const {
-    state: networks, save: saveNetworks, clear: clearNetworks
-  } = useLocalStore(keyNetworkList, []);
+  } = useLocalStore(keys.tags, []);
 
   function saveAll(): void {
     saveNodes();
     saveLinks();
     saveFuncCircles();
     saveTags();
-    // saveNetworks();
   }
 
   function clearAll(): void {
@@ -50,7 +57,6 @@ export function useGraphStore(id: string) {
     clearLinks();
     clearFuncCircles();
     clearTags();
-    clearNetworks();
   }
 
   return {
@@ -60,6 +66,5 @@ export function useGraphStore(id: string) {
     tags,
     saveAll,
     clearAll,
-    networks,
   };
 }

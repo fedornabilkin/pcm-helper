@@ -107,20 +107,30 @@ const changeLink = (): void => {
 
 const addNetwork = (): void => {
   const network = networkService.addNetwork()
+  if (!network) {
+    return
+  }
+
   currentNetwork.value = network
+  networks.value = [...networkService.networks]
   networkService.saveAll()
   router.push({params: {id: network.id}})
 }
 
-const saveNetwork = (): void => {
+const saveNetwork = (name?: string): void => {
+  if (name && currentNetwork.value) {
+    currentNetwork.value.name = name
+  }
   networkService.saveAll()
 }
 
-const removeNetwork = (network: Network): void => {
-  networkService.removeNetwork(network);
+const removeNetwork = async (network: Network): Promise<void> => {
   currentNetwork.value = undefined
+  await router.push({params: {id: 0}})
+
+  networkService.removeNetwork(network);
+  networks.value = [...networkService.networks]
   networkService.saveAll()
-  router.push({params: {id: 0}})
 }
 
 const switchNetwork = (item: Network): void => {
@@ -251,7 +261,6 @@ const toggleInfoPanel = (panelName: string): void => {
 const selectTag = (tag: Tag): void => {
   activeTagId.value = activeTagId.value === tag.id ? null : tag.id
   draw.setActiveTagId(activeTagId.value)
-  reRender()
 }
 
 const hideNodeControl = (): void => {
@@ -400,6 +409,7 @@ onBeforeUnmount((): void => {
           :current-network="currentNetwork"
           :networks="networks"
           :graph-service="graphService"
+          :revision="graphRevision"
           @saveNetwork="saveNetwork"
           @addNetwork="addNetwork"
           @removeNetwork="removeNetwork"
@@ -412,58 +422,58 @@ onBeforeUnmount((): void => {
           button.button.is-small.is-info(type="button" title="Добавить контакт" @click="addNode")
             span.icon
               i.fa.fa-user-plus
-            span Добавить контакт
+            span Добавить
       .saved.tag.is-success.is-light(v-if="isSaved") Сохранено {{ new Date() }}
 
-    form.node-search(@submit.prevent="selectFirstSearchNode")
-      .field.has-addons
-        .control.is-expanded.has-icons-left
-          input.input.is-small(
-            v-model="nodeSearchQuery"
-            type="search"
-            placeholder="Поиск по узлам"
-            autocomplete="off"
-            aria-label="Поиск по узлам"
-            aria-autocomplete="list"
-            :aria-expanded="isNodeSearchOpen"
-            @focus="isNodeSearchOpen = true"
-            @input="handleNodeSearchInput"
-            @blur="closeNodeSearch"
-            @keydown.esc="isNodeSearchOpen = false"
-          )
-          span.icon.is-small.is-left
-            i.fa.fa-magnifying-glass
-        .control(v-if="nodeSearchQuery")
-          button.button.is-small(
+      form.node-search(@submit.prevent="selectFirstSearchNode")
+        .field.has-addons
+          .control.is-expanded.has-icons-left
+            input.input.is-small(
+              v-model="nodeSearchQuery"
+              type="search"
+              placeholder="Поиск по узлам"
+              autocomplete="off"
+              aria-label="Поиск по узлам"
+              aria-autocomplete="list"
+              :aria-expanded="isNodeSearchOpen"
+              @focus="isNodeSearchOpen = true"
+              @input="handleNodeSearchInput"
+              @blur="closeNodeSearch"
+              @keydown.esc="isNodeSearchOpen = false"
+            )
+            span.icon.is-small.is-left
+              i.fa.fa-magnifying-glass
+          .control(v-if="nodeSearchQuery")
+            button.button.is-small(
+              type="button"
+              title="Очистить поиск"
+              aria-label="Очистить поиск"
+              @mousedown.prevent
+              @click="clearNodeSearch"
+            )
+              span.icon.is-small
+                i.fa.fa-xmark
+        .node-search-dropdown(v-if="isNodeSearchOpen")
+          button.node-search-option(
+            v-for="node in visibleSearchNodes"
+            :key="node.id"
             type="button"
-            title="Очистить поиск"
-            aria-label="Очистить поиск"
-            @mousedown.prevent
-            @click="clearNodeSearch"
+            @mousedown.prevent="selectSearchNode(node)"
           )
-            span.icon.is-small
-              i.fa.fa-xmark
-      .node-search-dropdown(v-if="isNodeSearchOpen")
-        button.node-search-option(
-          v-for="node in visibleSearchNodes"
-          :key="node.id"
-          type="button"
-          @mousedown.prevent="selectSearchNode(node)"
-        )
-          span.node-search-option-name {{ node.getName() || `Узел ${node.id}` }}
-          span.node-search-option-description(v-if="node.description") {{ node.description }}
-        .node-search-empty(v-if="visibleSearchNodes.length === 0")
-          span Ничего не найдено
-          button.button.is-small.is-info(
-            type="button"
-            @mousedown.prevent
-            @click="addNodeFromSearch"
-          )
-            span.icon.is-small
-              i.fa.fa-user-plus
-            span Добавить
-        .node-search-more(v-else-if="matchingSearchNodes.length > visibleSearchNodes.length")
-          | Ещё {{ matchingSearchNodes.length - visibleSearchNodes.length }}
+            span.node-search-option-name {{ node.getName() || `Узел ${node.id}` }}
+            span.node-search-option-description(v-if="node.description") {{ node.description }}
+          .node-search-empty(v-if="visibleSearchNodes.length === 0")
+            span Ничего не найдено
+            button.button.is-small.is-info(
+              type="button"
+              @mousedown.prevent
+              @click="addNodeFromSearch"
+            )
+              span.icon.is-small
+                i.fa.fa-user-plus
+              span Добавить
+          .node-search-more(v-else-if="matchingSearchNodes.length > visibleSearchNodes.length")
+            | Ещё {{ matchingSearchNodes.length - visibleSearchNodes.length }}
 
     setting-graph.node-control-panel(
       v-if="selectedNode"
@@ -531,7 +541,7 @@ onBeforeUnmount((): void => {
           .content.info-guide
             p.has-text-weight-semibold Как использовать мымру
             ul
-              li Создавайте контакты кнопкой "Добавить контакт" и отмечайте PCM-цвет, тип контакта, теги и описание.
+              li Создавайте контакты кнопкой "Добавить" и отмечайте PCM-цвет, тип контакта, теги и описание.
               li Связывайте контакты на вкладке связей, чтобы видеть маршруты и ближайшее окружение.
               li Используйте функциональные круги для группировки контактов по близости: поддержка, продуктивность, развитие.
               li Открывайте теги снизу, выбирайте активный тег и быстро подсвечивайте связанные с ним ноды на графе.
@@ -621,23 +631,32 @@ onBeforeUnmount((): void => {
   z-index: 10;
 }
 
+.graph-container .nodes circle.is-tag-highlighted,
 .graph-container .nodes circle.is-search-highlighted {
-  animation: node-search-pulse 1.6s ease-in-out infinite;
+  animation: node-highlight-pulse 1.6s ease-in-out infinite;
   vector-effect: non-scaling-stroke;
 }
 
-@keyframes node-search-pulse {
+.graph-container .nodes circle.is-tag-highlighted {
+  --node-highlight-color: var(--app-tag-highlight);
+}
+
+.graph-container .nodes circle.is-search-highlighted {
+  --node-highlight-color: var(--app-search-highlight);
+}
+
+@keyframes node-highlight-pulse {
   0%,
   100% {
-    stroke: var(--app-search-highlight);
+    stroke: var(--node-highlight-color);
     stroke-width: 5px;
-    filter: drop-shadow(0 0 1px var(--app-search-highlight));
+    filter: drop-shadow(0 0 1px var(--node-highlight-color));
   }
 
   50% {
-    stroke: var(--app-search-highlight);
+    stroke: var(--node-highlight-color);
     stroke-width: 11px;
-    filter: drop-shadow(0 0 7px var(--app-search-highlight));
+    filter: drop-shadow(0 0 7px var(--node-highlight-color));
   }
 }
 
@@ -653,6 +672,7 @@ onBeforeUnmount((): void => {
   top: 0.25rem;
   left: 0.5rem;
   right: 0.5rem;
+  min-width: 0;
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
@@ -715,6 +735,11 @@ onBeforeUnmount((): void => {
 .node-search .field {
   margin-bottom: 0;
   filter: drop-shadow(0 0.25rem 0.6rem rgb(0 0 0 / 12%));
+}
+
+.node-search .control.is-expanded,
+.node-search .input {
+  min-width: 0;
 }
 
 .node-search-dropdown {
@@ -886,7 +911,27 @@ onBeforeUnmount((): void => {
 
 @media screen and (max-width: 768px) {
   .workspace-topbar {
+    right: auto;
+    width: calc(100vw - 1rem);
     flex-direction: column;
+  }
+
+  .network-menu {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 0.35rem;
+    overflow: hidden;
+  }
+
+  .network-menu-actions {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    justify-content: flex-start;
+    padding-top: 0;
   }
 
   .node-control-panel {
@@ -897,8 +942,17 @@ onBeforeUnmount((): void => {
   }
 
   .node-search {
-    top: 4.5rem;
-    width: min(380px, calc(100vw - 1rem));
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 100%;
+    max-width: 100%;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  .node-search-empty {
+    flex-wrap: wrap;
   }
 
   .info-dock {
