@@ -208,6 +208,8 @@ const typeStats = computed((): {
         span.icon.is-small
           i.fa.fa-pencil
 
+      slot(name="actions")
+
     form.network-name-editor(v-if="isEditingName" @submit.prevent="saveNetwork")
       .field.has-addons
         .control.is-expanded.has-icons-left

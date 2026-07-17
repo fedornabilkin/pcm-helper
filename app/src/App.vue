@@ -9,9 +9,21 @@ const showFooter = computed(() => route.meta.hideFooter !== true)
 </script>
 
 <template lang="pug">
-Header
-router-view
-Footer(v-if="showFooter")
+.app-shell
+  Header
+  main.app-main
+    router-view
+  Footer(v-if="showFooter")
 </template>
 
-<style></style>
+<style>
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-main {
+  flex: 1 0 auto;
+}
+</style>

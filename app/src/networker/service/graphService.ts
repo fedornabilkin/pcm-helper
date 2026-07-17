@@ -18,6 +18,7 @@ import type {
   TagCollection,
   TagDTO,
 } from "@/networker/graph/types";
+import {cloneDataTransfer} from "@/networker/service/transfer/networkFile";
 
 const FUNCTIONAL_CIRCLE_PRESETS = [
   {name: 'support', label: 'Поддержка', r: 100, fillAlpha: 0.26, strokeAlpha: 0.55},
@@ -58,12 +59,18 @@ export class GraphService extends MainService{
 
     this.graphStore = useGraphStore(this.storeId);
 
-    this.importCollections(
-      this.graphStore.nodes.value,
-      this.graphStore.links.value,
-      this.graphStore.funcCircles.value,
-      this.graphStore.tags.value
-    )
+    const storedNodes = this.graphStore.nodes.value
+    const storedLinks = this.graphStore.links.value
+    const storedCircles = this.graphStore.funcCircles.value
+    const storedTags = this.graphStore.tags.value
+    const needsUidMigration = [storedNodes, storedLinks, storedCircles, storedTags]
+      .some(collection => collection.some((item: {uid?: string}) => !item.uid))
+
+    this.importCollections(storedNodes, storedLinks, storedCircles, storedTags)
+
+    if (needsUidMigration) {
+      this.saveAll()
+    }
   }
 
   importCollections(
@@ -136,10 +143,27 @@ export class GraphService extends MainService{
     return this.nodes.length
   }
 
-  addLink(target: Node, distance = 100): Link {
+  addLink(target: Node, distance = 100): Link | undefined {
     if (!this.currentNode) return
+    return this.addLinkBetween(this.currentNode, target, distance)
+  }
+
+  findLinkBetween(source: Node, target: Node): Link | undefined {
+    return this.links.find(link => {
+      return (link.source.id === source.id && link.target.id === target.id)
+        || (link.source.id === target.id && link.target.id === source.id)
+    })
+  }
+
+  addLinkBetween(source: Node, target: Node, distance = 100): Link | undefined {
+    if (!source?.id || !target?.id || source.id === target.id) {
+      return undefined
+    }
+    if (this.findLinkBetween(source, target)) {
+      return undefined
+    }
     this.linkBuilder.build({
-      id: this.nextId(this.links), source: this.currentNode, target, distance,
+      id: this.nextId(this.links), source, target, distance,
     });
     const link = this.linkBuilder.getEntity();
     this.links.push(link);
@@ -302,6 +326,19 @@ export class GraphService extends MainService{
     this.importCollections(dto.nodes, dto.links, dto.circles, dto.tags)
   }
 
+  applyDTOAtomic(dto: DataTransfer): void {
+    const backup = cloneDataTransfer(this.toDTO())
+
+    try {
+      this.fromDTO(cloneDataTransfer(dto))
+      this.saveAll()
+    } catch (error) {
+      this.fromDTO(backup)
+      this.saveAll()
+      throw error
+    }
+  }
+
   saveAll(): void {
     this.graphStore.nodes.value = this.nodes;
     this.graphStore.links.value = this.links;
@@ -316,7 +353,7 @@ export class GraphService extends MainService{
 
   import(data: string | ArrayBuffer): void {
     const dto = this.fileAdapter.import(data);
-    this.fromDTO(dto);
+    this.applyDTOAtomic(dto);
   }
 
   // clearAll(): void {

@@ -10,6 +10,7 @@ export type EntityId = number;
 
 export interface FactDTO {
   id?: EntityId;
+  uid?: string;
   description?: string;
 }
 
@@ -19,6 +20,7 @@ export interface PcmDTO {
 
 export interface GraphNodeDTO {
   id?: EntityId;
+  uid?: string;
   name?: string;
   description?: string;
   nodeType?: NodeTypeCode | null;
@@ -26,13 +28,19 @@ export interface GraphNodeDTO {
   tags?: EntityId[];
   pcm?: PcmDTO;
   fixed?: boolean;
+  x?: number;
+  y?: number;
   fx?: number | null;
   fy?: number | null;
+  r?: number;
   fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
 }
 
 export interface GraphLinkDTO {
   id?: EntityId;
+  uid?: string;
   source: EntityId | Node;
   target: EntityId | Node;
   distance?: number;
@@ -43,6 +51,7 @@ export interface GraphLinkDTO {
 
 export interface FunctionalCircleDTO {
   id?: EntityId;
+  uid?: string;
   nodeId?: EntityId;
   name?: string;
   r?: number;
@@ -52,6 +61,7 @@ export interface FunctionalCircleDTO {
 
 export interface TagDTO {
   id?: EntityId;
+  uid?: string;
   name?: string;
   group?: string;
   color?: string;

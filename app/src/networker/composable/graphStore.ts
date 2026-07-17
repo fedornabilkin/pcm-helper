@@ -8,6 +8,8 @@ const getGraphStoreKeys = (id: string | number) => {
     links: `${prefix}-graph_links`,
     funcCircles: `${prefix}-graph_funcCircles`,
     tags: `${prefix}-graph_tags`,
+    importRevision: `${prefix}-graph_importRevision`,
+    importBackup: `${prefix}-graph_importBackup`,
   }
 }
 
@@ -57,6 +59,8 @@ export function useGraphStore(id: string | number) {
     clearLinks();
     clearFuncCircles();
     clearTags();
+    localStorage.removeItem(keys.importRevision)
+    localStorage.removeItem(keys.importBackup)
   }
 
   return {

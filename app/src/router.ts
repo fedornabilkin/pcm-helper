@@ -6,6 +6,7 @@ import Personality from "@/components/page/Personality.vue";
 import Channel from "@/components/page/Channel.vue";
 import Interaction from "@/components/page/Interaction.vue";
 import MymraCreation from "@/components/page/MymraCreation.vue";
+import Payment from "@/components/page/Payment.vue";
 
 
 const routes = [
@@ -56,6 +57,15 @@ const routes = [
             hidePageTitle: true
         },
         component: MymraCreation
+    },
+    {
+        path: '/payment',
+        name: 'payment',
+        meta: {
+            title: 'Поддержать проект',
+            hidePageTitle: true,
+        },
+        component: Payment,
     },
 
     {

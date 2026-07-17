@@ -1,7 +1,10 @@
 ﻿import MainEntity from "../../../core/builder/mainEntity";
 
+import {createUid} from "@/core/id/uid";
+
 export class Network extends MainEntity {
   id: number = ''
+  uid: string = createUid()
   name: string = ''
 
   constructor(config: any = {}) {

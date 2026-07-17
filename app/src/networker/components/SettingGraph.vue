@@ -27,7 +27,6 @@ props.graphService.cbActiveNode = (node: Node) => {
   currentNode.value = node
 }
 
-const currentFact = ref<EntityFact | undefined>(undefined);
 const aiService = new PcmTypeAiService()
 const aiText = ref('')
 const aiSummary = ref('')
@@ -82,19 +81,14 @@ const removeLink = (link): void => {
   emit('changeLink', link)
 }
 
-const addFact = (): void => {
-  currentFact.value = props.graphService.addFact(currentNode.value)
-  emit('changeFact')
-}
-
-const saveFact = (): void => {
-  currentFact.value = undefined
+const addFact = (description: string): void => {
+  const fact = props.graphService.addFact(currentNode.value)
+  fact.description = description
   emit('changeFact')
 }
 
 const removeFact = (fact: EntityFact): void => {
   props.graphService.removeFact(currentNode.value, fact)
-  currentFact.value = undefined
   emit('changeFact')
 }
 
@@ -110,7 +104,6 @@ const unbindTag = (tag: EntityTag): void => {
 
 const close = (): void => {
   currentNode.value = undefined
-  currentFact.value = undefined
   emit('close')
 }
 
@@ -314,12 +307,9 @@ onBeforeUnmount(() => {
 
     .panel-block(v-if="activeTab === 3")
       Fact(
-        :fact="currentFact"
         :node="currentNode"
-        @change="change"
         @add="addFact"
         @remove="removeFact"
-        @save="saveFact"
       )
 
     .panel-block(v-if="activeTab === 4")

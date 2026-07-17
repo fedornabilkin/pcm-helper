@@ -7,6 +7,8 @@ import {Fact} from "./Fact";
 import {PcmEntity} from "./pcm";
 import {Tag} from "./tag";
 
+import {createUid} from "@/core/id/uid";
+
 export class NodeBuilder extends MainBuilder {
   entity: Node = new Node()
 
@@ -17,16 +19,26 @@ export class NodeBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.uid = data.uid ?? createUid()
     this.entity.name = data.name
     this.entity.description = data.description
     this.entity.nodeType = data.nodeType ?? null
     this.entity.facts = []
 
     this.entity.fixed = data.fixed || false
+    this.entity.x = typeof data.x === 'number' ? data.x : this.entity.x
+    this.entity.y = typeof data.y === 'number' ? data.y : this.entity.y
     this.entity.fx = data.fx
     this.entity.fy = data.fy
+    this.entity.r = typeof data.r === 'number' ? data.r : this.entity.r
     if (data.fill) {
       this.entity.fill = data.fill
+    }
+    if (data.stroke) {
+      this.entity.stroke = data.stroke
+    }
+    if (typeof data.strokeWidth === 'number') {
+      this.entity.strokeWidth = data.strokeWidth
     }
     if (data.tags) {
       this.entity.tags = data.tags
@@ -68,6 +80,7 @@ export class LinkBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.uid = data.uid ?? createUid()
     this.entity.source = data.source
     this.entity.target = data.target
     this.entity.distance = data.distance
@@ -91,6 +104,7 @@ export class CircleBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.uid = data.uid ?? createUid()
     this.entity.nodeId = data.nodeId
     this.entity.name = data.name
     this.entity.r = data.r
@@ -113,6 +127,7 @@ export class NetworkBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.uid = data.uid ?? createUid()
     this.entity.name = data.name
   }
 }
@@ -127,6 +142,7 @@ export class FactBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.uid = data.uid ?? createUid()
     this.entity.description = data.description
   }
 }
@@ -141,6 +157,7 @@ export class TagBuilder extends MainBuilder {
   build(data: any) {
     super.build(data);
     this.entity.id = data.id
+    this.entity.uid = data.uid ?? createUid()
     this.entity.name = data.name
     this.entity.group = data.group
     this.entity.color = data.color

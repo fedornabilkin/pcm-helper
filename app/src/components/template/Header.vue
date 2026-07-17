@@ -1,18 +1,10 @@
 <script setup lang="ts">
-import {computed, ref} from "vue";
+import {computed} from "vue";
 import {useRoute} from "vue-router";
-import {useTheme} from "@/core/composable/theme/useTheme";
 
-const open = ref(false)
 const route = useRoute()
 const isCompactHeader = computed(() => route.meta.compactHeader === true)
 const showPageTitle = computed(() => route.meta.hidePageTitle !== true)
-const {isDarkTheme, toggleTheme} = useTheme()
-const themeButtonTitle = computed(() => isDarkTheme.value ? 'Включить светлую тему' : 'Включить тёмную тему')
-
-const toggleNavigation = () => {
-  open.value = !open.value
-}
 
 const menuList = {
   filter: {
@@ -86,39 +78,45 @@ const getTitle = (r) => {
 </script>
 <template lang="pug">
 .app-header(:class="{'is-compact': isCompactHeader}")
-  nav.navbar(role='navigation' aria-label='main navigation')
-    //.container
-    .navbar-brand
-      a.navbar-item(href='/')
-        img(src='/logo.png' alt='pcmhelper.ru')
-      button.button.is-small.is-light.theme-toggle(type="button" :title="themeButtonTitle" @click="toggleTheme")
-        span.icon
-          i.fa(:class="isDarkTheme ? 'fa-sun' : 'fa-moon'")
-    //  a.navbar-burger.burger(role='button' :class="{ 'is-active': open }" aria-label='menu' aria-expanded='false' @click='toggleNavigation')
-    //    span(aria-hidden='true')
-    //    span(aria-hidden='true')
-    //    span(aria-hidden='true')
-    //.navbar-menu(:class="{ 'is-active': open }")
-    //  .navbar-end
-        //.navbar-item
-          ShareButtons
+  .header-navigation
+    nav.navbar(role='navigation' aria-label='main navigation')
+      .navbar-brand
+        a.navbar-item(href='/')
+          img(src='/logo.png' alt='pcmhelper.ru')
 
-  .tabs.is-centered.is-boxed
-    ul
-      li(v-for="item in menuList" :key="item.name" :class="{'is-active': currentRoute($route, item)}")
-        router-link(:to="{name: item.route.name}")
-          span.icon
-            i.fa(:class="item.icon" aria-hidden="true")
-          span.is-hidden-mobile.is-hidden-desktop {{ item.anchor.short }}
-          span.is-hidden-touch {{ item.anchor.full }}
+    .tabs.is-centered.is-boxed.app-navigation
+      ul
+        li(v-for="item in menuList" :key="item.name" :class="{'is-active': currentRoute($route, item)}")
+          router-link(:to="{name: item.route.name}")
+            span.icon
+              i.fa(:class="item.icon" aria-hidden="true")
+            span.is-hidden-mobile.is-hidden-desktop {{ item.anchor.short }}
+            span.is-hidden-touch {{ item.anchor.full }}
   .container.mb-3(v-if="showPageTitle")
     h1.title.is-4 {{ getTitle($route) }}
 </template>
 
 <style scoped>
-.theme-toggle {
-  align-self: center;
-  margin-left: 0.25rem;
+.header-navigation {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.header-navigation .navbar {
+  flex: 0 0 auto;
+}
+
+.app-navigation {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.app-navigation ul {
+  flex-wrap: nowrap;
 }
 
 .app-header.is-compact .navbar {
@@ -141,14 +139,26 @@ const getTitle = (r) => {
   max-height: 1.75rem;
 }
 
-.app-header.is-compact .tabs {
-  display: inline-flex;
+.app-header.is-compact .app-navigation {
   margin-bottom: 0;
-  vertical-align: top;
 }
 
-.app-header.is-compact .tabs a {
+.app-header.is-compact .app-navigation a {
   padding-bottom: 0.3rem;
   padding-top: 0.3rem;
+}
+
+@media screen and (max-width: 768px) {
+  .app-header .header-navigation .navbar {
+    display: none;
+  }
+
+  .app-navigation {
+    overflow-x: visible;
+  }
+
+  .app-navigation ul {
+    justify-content: center;
+  }
 }
 </style>

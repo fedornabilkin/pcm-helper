@@ -8,8 +8,11 @@ export class Distance {
   oblivion: any = {}
 }
 
+import {createUid} from "@/core/id/uid";
+
 export class Link extends MainEntity{
   id: number = 0
+  uid: string = createUid()
   source: number|Node = 0
   target: number|Node = 0
   // distance: Distance = new Distance()

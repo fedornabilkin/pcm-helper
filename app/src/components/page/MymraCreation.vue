@@ -15,8 +15,9 @@ import NodeCard from "@/networker/components/NodeCard.vue";
 import LinkCard from "@/networker/components/LinkCard.vue";
 import TagManager from "@/networker/components/TagManager.vue";
 import {NodeToolTip} from "@/networker/graph/toolTip";
-import {JsonFileAdapter} from "@/networker/service/transfer/fileAdapter";
-import packageJson from "../../../package.json";
+import NetworkTransferModal from "@/networker/components/NetworkTransferModal.vue";
+import type {ImportPlan} from "@/networker/service/import/graphImportService";
+import PaymentMethodsButton from "@/components/monetisation/PaymentMethodsButton.vue";
 
 const router = useRouter()
 let networkId = ref(0)
@@ -40,6 +41,9 @@ watch(
       funcCircle.value = graphService.funcCircles
       activeTagId.value = null
       draw.setActiveTagId(null)
+      isLinkEditMode.value = false
+      draw.setLinkEditMode(false)
+      clearLinkSource()
       selectedNode.value = undefined
       clearNodeSearch()
       reRender()
@@ -58,9 +62,10 @@ const draw: DrawNetwork = new DrawNetwork({
   box: {w:800,h:600},
   toolTip: new NodeToolTip(),
   clickNode: (e: any, d: Node): void => {
-    graphService.setCurrentNode(d)
-    selectedNode.value = d
-    reRender()
+    handleGraphNodeClick(e, d)
+  },
+  clickLink: (e: any, d: Link): void => {
+    handleGraphLinkClick(e, d)
   },
   cbSimulationEnd: (): void => {saveAll()}
 })
@@ -152,16 +157,19 @@ const changeTag = (): void => {
 }
 
 const importNetwork = (): void => {
+  links.value = graphService.links
+  funcCircle.value = graphService.funcCircles
   reRender();
 }
 
 const pageElement = ref<HTMLElement | null>(null)
 const graphHost = ref<HTMLElement | null>(null)
-const importFileInput = ref<HTMLInputElement | null>(null)
 const pageHeight = ref(720)
 const activeInfoPanel = ref<string | null>(null)
 const activeTagId = ref<number | null>(null)
 const selectedNode = ref<Node | undefined>(undefined)
+const isLinkEditMode = ref(false)
+const linkSourceNode = ref<Node | undefined>(undefined)
 const isTransferModalOpen = ref(false)
 const nodeSearchQuery = ref('')
 const selectedSearchNodeId = ref<number | null>(null)
@@ -269,6 +277,72 @@ const hideNodeControl = (): void => {
   reRender()
 }
 
+const clearLinkSource = (): void => {
+  linkSourceNode.value = undefined
+  draw.setLinkActionSourceNodeId(null)
+}
+
+const toggleLinkEditMode = (): void => {
+  isLinkEditMode.value = !isLinkEditMode.value
+  draw.setLinkEditMode(isLinkEditMode.value)
+  clearLinkSource()
+
+  if (isLinkEditMode.value) {
+    graphService.setCurrentNode(undefined)
+    selectedNode.value = undefined
+    reRender()
+  }
+}
+
+const handleGraphNodeClick = (event: Event, node: Node): void => {
+  event.stopPropagation()
+  if (!isLinkEditMode.value) {
+    graphService.setCurrentNode(node)
+    selectedNode.value = node
+    reRender()
+    return
+  }
+
+  if (!linkSourceNode.value) {
+    linkSourceNode.value = node
+    draw.setLinkActionSourceNodeId(node.id ?? null)
+    return
+  }
+
+  if (linkSourceNode.value.id === node.id) {
+    clearLinkSource()
+    return
+  }
+
+  const existingLink = graphService.findLinkBetween(linkSourceNode.value, node)
+  if (existingLink) {
+    graphService.removeLink(existingLink)
+  } else {
+    graphService.addLinkBetween(linkSourceNode.value, node)
+  }
+  clearLinkSource()
+  reRender()
+}
+
+const handleGraphLinkClick = (event: Event, link: Link): void => {
+  event.stopPropagation()
+  if (!isLinkEditMode.value) {
+    return
+  }
+
+  graphService.removeLink(link)
+  clearLinkSource()
+  reRender()
+}
+
+const handleWorkspaceKeydown = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape' && isLinkEditMode.value) {
+    isLinkEditMode.value = false
+    draw.setLinkEditMode(false)
+    clearLinkSource()
+  }
+}
+
 const handleNodeSearchInput = (): void => {
   selectedSearchNodeId.value = null
   isNodeSearchOpen.value = true
@@ -313,74 +387,15 @@ const closeTransferModal = (): void => {
   isTransferModalOpen.value = false
 }
 
-const formatExportFileDateTime = (date: Date): string => {
-  const pad = (value: number): string => String(value).padStart(2, '0')
-
-  return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join('-') + '_' + [
-    pad(date.getHours()),
-    pad(date.getMinutes()),
-    pad(date.getSeconds()),
-  ].join('-')
-}
-
-const exportNetworkFile = (): void => {
-  const exportedAt = new Date()
-
-  graphService.setFileAdapter(new JsonFileAdapter({
-    version: packageJson.version,
-    exportedAt: exportedAt.toISOString(),
-    exportedAtReadable: exportedAt.toLocaleString('ru-RU'),
-    networkName: currentNetwork.value?.name ?? 'Основная',
-  }))
-  const dataUri = "data:text/json;charset=utf-8," + encodeURIComponent(graphService.export());
-  const anchorElement = document.createElement('a');
-  anchorElement.href = dataUri;
-  anchorElement.download = `pcm-helper-${formatExportFileDateTime(exportedAt)}.json`;
-  document.body.appendChild(anchorElement);
-  anchorElement.click();
-  document.body.removeChild(anchorElement);
-  closeTransferModal()
-}
-
-const selectImportFile = (): void => {
-  importFileInput.value?.click()
-}
-
-const importNetworkFile = (event: Event): void => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = e => {
-    try {
-      const data = e.target?.result;
-      if (typeof data !== 'string') {
-        throw new Error('Файл должен быть текстовым JSON-файлом.');
-      }
-
-      graphService.setFileAdapter(new JsonFileAdapter())
-      graphService.import(data)
-      selectedNode.value = undefined
-      importNetwork()
-      closeTransferModal()
-    } catch (error) {
-      console.error('Ошибка импорта:', error);
-    } finally {
-      input.value = ''
-    }
-  };
-
-  reader.onerror = e => {
-    console.error('Ошибка FileReader:', e);
-  };
-
-  reader.readAsText(file);
+const handleNetworkImported = (_plan: ImportPlan): void => {
+  isLinkEditMode.value = false
+  draw.setLinkEditMode(false)
+  clearLinkSource()
+  selectedNode.value = undefined
+  clearNodeSearch()
+  activeTagId.value = null
+  draw.setActiveTagId(null)
+  importNetwork()
 }
 
 onMounted(async (): Promise<void> => {
@@ -390,10 +405,12 @@ onMounted(async (): Promise<void> => {
     renderGraph()
   })
   window.addEventListener('resize', resizeWorkspace)
+  window.addEventListener('keydown', handleWorkspaceKeydown)
 })
 
 onBeforeUnmount((): void => {
   window.removeEventListener('resize', resizeWorkspace)
+  window.removeEventListener('keydown', handleWorkspaceKeydown)
 })
 
 </script>
@@ -415,17 +432,31 @@ onBeforeUnmount((): void => {
           @removeNetwork="removeNetwork"
           @switchNetwork="switchNetwork"
         )
-        .network-menu-actions
-          button.button.is-small.is-light(type="button" title="Импорт и экспорт сети" @click="openTransferModal")
-            span.icon
-              i.fa.fa-file-arrow-down
-          button.button.is-small.is-info(type="button" title="Добавить контакт" @click="addNode")
-            span.icon
-              i.fa.fa-user-plus
-            span Добавить
-      .saved.tag.is-success.is-light(v-if="isSaved") Сохранено {{ new Date() }}
+          template(#actions)
+            .network-menu-actions
+              button.button.is-small.is-light(type="button" title="Импорт и экспорт сети" @click="openTransferModal")
+                span.icon
+                  i.fa.fa-file-arrow-down
+              button.button.is-small.is-info(type="button" title="Добавить контакт" @click="addNode")
+                span.icon
+                  i.fa.fa-user-plus
+              button.button.is-small(
+                type="button"
+                :class="isLinkEditMode ? 'is-link' : 'is-light'"
+                :title="isLinkEditMode ? 'Завершить работу со связями' : 'Добавить или удалить связь на графе'"
+                @click="toggleLinkEditMode"
+              )
+                span.icon
+                  i.fa.fa-link
+                span.is-hidden-mobile Связь
+      .link-mode-hint.tag.is-info.is-light(v-if="isLinkEditMode")
+        i.fa.fa-link.mr-1
+        | {{ linkSourceNode ? 'Выберите второй узел' : 'Выберите первый узел или связь' }}
 
-      form.node-search(@submit.prevent="selectFirstSearchNode")
+      form.node-search(
+        :class="{'is-node-control-open': selectedNode}"
+        @submit.prevent="selectFirstSearchNode"
+      )
         .field.has-addons
           .control.is-expanded.has-icons-left
             input.input.is-small(
@@ -537,12 +568,12 @@ onBeforeUnmount((): void => {
             span.delete
         .card-content
           .notification.is-warning.is-light.data-note
-            | Данные хранятся в браузере и сохраняются автоматически.
+            | Данные хранятся в браузере и сохраняются автоматически — обычно примерно через 1,5 секунды после изменения.
           .content.info-guide
             p.has-text-weight-semibold Как использовать мымру
             ul
               li Создавайте контакты кнопкой "Добавить" и отмечайте PCM-цвет, тип контакта, теги и описание.
-              li Связывайте контакты на вкладке связей, чтобы видеть маршруты и ближайшее окружение.
+              li Включите режим «Связь» и выберите два узла на графе, чтобы добавить или удалить связь.
               li Используйте функциональные круги для группировки контактов по близости: поддержка, продуктивность, развитие.
               li Открывайте теги снизу, выбирайте активный тег и быстро подсвечивайте связанные с ним ноды на графе.
               li На вкладке волшебной палочки можно отправить текст и получить предположение о PCM-типе контакта.
@@ -567,33 +598,24 @@ onBeforeUnmount((): void => {
         @close="activeInfoPanel = null"
       )
 
-  .modal(:class="{'is-active': isTransferModalOpen}")
-    .modal-background(@click="closeTransferModal")
-    .modal-card.transfer-modal
-      header.modal-card-head
-        p.modal-card-title Импорт и экспорт сети
-        button.delete(type="button" aria-label="close" @click="closeTransferModal")
-      section.modal-card-body
-        .columns.transfer-columns
-          .column.transfer-column
-            h3.title.is-5 Экспорт
-            p Сохранит текущую сеть в JSON-файл с датой и временем создания.
-          .column.transfer-column
-            h3.title.is-5 Импорт
-            p Заменит данные текущей сети содержимым выбранного JSON-файла.
-            .notification.is-warning.is-light.import-warning
-              strong Важно:
-              |  старые данные будут безвозвратно утеряны.
-            input.is-hidden(ref="importFileInput" type="file" accept="application/json,.json" @change="importNetworkFile")
-      footer.modal-card-foot.transfer-modal-actions
-        button.button.is-info(type="button" @click="exportNetworkFile")
-          span.icon
-            i.fa.fa-file-export
-          span Экспорт
-        button.button.is-warning.import-action(type="button" @click="selectImportFile")
-          span.icon
-            i.fa.fa-file-import
-          span Импорт
+    .workspace-payment
+      PaymentMethodsButton
+
+  NetworkTransferModal(
+    v-if="isTransferModalOpen"
+    :graph-service="graphService"
+    :network-id="networkId"
+    :network-name="currentNetwork?.name ?? 'Основная'"
+    @close="closeTransferModal"
+    @imported="handleNetworkImported"
+  )
+
+Teleport(to="body")
+  Transition(name="save-toast")
+    .save-toast(v-if="isSaved" role="status" aria-live="polite")
+      span.icon
+        i.fa.fa-check
+      span Сохранено
 </template>
 
 <style>
@@ -632,7 +654,8 @@ onBeforeUnmount((): void => {
 }
 
 .graph-container .nodes circle.is-tag-highlighted,
-.graph-container .nodes circle.is-search-highlighted {
+.graph-container .nodes circle.is-search-highlighted,
+.graph-container .nodes circle.is-link-action-source {
   animation: node-highlight-pulse 1.6s ease-in-out infinite;
   vector-effect: non-scaling-stroke;
 }
@@ -643,6 +666,14 @@ onBeforeUnmount((): void => {
 
 .graph-container .nodes circle.is-search-highlighted {
   --node-highlight-color: var(--app-search-highlight);
+}
+
+.graph-container .nodes circle.is-link-action-source {
+  --node-highlight-color: #23d160;
+}
+
+.graph-container .links line.is-link-editable {
+  cursor: pointer;
 }
 
 @keyframes node-highlight-pulse {
@@ -663,7 +694,8 @@ onBeforeUnmount((): void => {
 .workspace-topbar,
 .node-search,
 .node-control-panel,
-.info-dock {
+.info-dock,
+.workspace-payment {
   position: absolute;
   z-index: 5;
 }
@@ -690,13 +722,6 @@ onBeforeUnmount((): void => {
 }
 
 .network-menu {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.network-menu > .network-list {
-  flex: 1;
   min-width: 0;
 }
 
@@ -720,7 +745,39 @@ onBeforeUnmount((): void => {
   margin-bottom: 0 !important;
 }
 
-.saved {
+.save-toast {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  z-index: 2000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #23d160;
+  border-radius: 999px;
+  background: var(--app-surface);
+  box-shadow: var(--app-shadow);
+  color: #167a3e;
+  font-size: 0.9rem;
+  font-weight: 600;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.save-toast-enter-active,
+.save-toast-leave-active {
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.save-toast-enter-from,
+.save-toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -0.5rem);
+}
+
+.link-mode-hint {
+  align-self: center;
   pointer-events: none;
 }
 
@@ -794,6 +851,15 @@ onBeforeUnmount((): void => {
   font-size: 0.8rem;
 }
 
+@media screen and (min-width: 769px) and (max-width: 1100px) {
+  .node-search {
+    right: 0.5rem;
+    left: auto;
+    width: 220px;
+    transform: none;
+  }
+}
+
 .node-search-empty {
   display: flex;
   align-items: center;
@@ -820,35 +886,6 @@ onBeforeUnmount((): void => {
   margin-bottom: 0;
 }
 
-.transfer-modal {
-  width: min(720px, calc(100vw - 2rem));
-}
-
-.transfer-columns {
-  margin-bottom: 0;
-}
-
-.transfer-column + .transfer-column {
-  border-left: 1px solid var(--app-border);
-}
-
-.transfer-column .title {
-  color: var(--app-text);
-}
-
-.import-warning {
-  margin-top: 1rem;
-  margin-bottom: 0 !important;
-}
-
-.transfer-modal-actions {
-  width: 100%;
-}
-
-.transfer-modal-actions .import-action {
-  margin-left: auto;
-}
-
 .info-dock {
   left: 0.35rem;
   bottom: 0.35rem;
@@ -858,6 +895,12 @@ onBeforeUnmount((): void => {
   align-items: flex-start;
   gap: 0.5rem;
   pointer-events: none;
+}
+
+.workspace-payment {
+  right: 0.5rem;
+  bottom: 0.5rem;
+  pointer-events: auto;
 }
 
 .data-note,
@@ -921,24 +964,24 @@ onBeforeUnmount((): void => {
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
-    flex-direction: column;
-    gap: 0.35rem;
     overflow: hidden;
   }
 
   .network-menu-actions {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-    justify-content: flex-start;
+    flex: 0 0 auto;
     padding-top: 0;
   }
 
   .node-control-panel {
-    top: 0;
-    left: auto;
+    top: 0.35rem;
+    right: 0.35rem;
+    bottom: 0.35rem;
+    left: 0.35rem;
     width: auto;
-    max-height: 100dvh;
+    height: auto;
+    max-width: none;
+    max-height: none;
+    border-radius: 6px;
   }
 
   .node-search {
@@ -951,6 +994,14 @@ onBeforeUnmount((): void => {
     pointer-events: auto;
   }
 
+  .node-search.is-node-control-open {
+    display: none;
+  }
+
+  .link-mode-hint {
+    align-self: flex-start;
+  }
+
   .node-search-empty {
     flex-wrap: wrap;
   }
@@ -958,6 +1009,11 @@ onBeforeUnmount((): void => {
   .info-dock {
     right: 0.35rem;
     width: auto;
+  }
+
+  .workspace-payment {
+    right: 0.35rem;
+    bottom: 3.5rem;
   }
 
   .info-actions {

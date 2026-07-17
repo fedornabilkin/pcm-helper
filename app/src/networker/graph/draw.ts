@@ -37,9 +37,11 @@ export class DrawNetwork {
   toolTip: ToolTip|null;
   activeTagId: number | null = null;
   searchHighlightedNodeIds: Set<number> = new Set();
+  linkActionSourceNodeId: number | null = null;
+  linkEditMode = false;
 
   clickNode = (e: any, d: Node) => {}
-  clickLink = (e: any, d: Node) => {}
+  clickLink = (e: any, d: Link) => {}
   cbSimulationEnd = () => {}
 
   constructor(config: any = {}) {
@@ -97,6 +99,22 @@ export class DrawNetwork {
     return node.id !== undefined && this.searchHighlightedNodeIds.has(node.id)
   }
 
+  setLinkActionSourceNodeId(nodeId: number | null): this {
+    this.linkActionSourceNodeId = nodeId
+    this.refreshLinkActionHighlight()
+    return this
+  }
+
+  setLinkEditMode(enabled: boolean): this {
+    this.linkEditMode = enabled
+    this.links?.classed('is-link-editable', enabled)
+    return this
+  }
+
+  isLinkActionSource(node: Node): boolean {
+    return node.id !== undefined && node.id === this.linkActionSourceNodeId
+  }
+
   refreshTagHighlight(): void {
     if (!this.nodes) {
       return
@@ -116,6 +134,17 @@ export class DrawNetwork {
     this.nodes.classed(
       'is-search-highlighted',
       (d: Node): boolean => this.isNodeSearchHighlighted(d),
+    )
+  }
+
+  refreshLinkActionHighlight(): void {
+    if (!this.nodes) {
+      return
+    }
+
+    this.nodes.classed(
+      'is-link-action-source',
+      (d: Node): boolean => this.isLinkActionSource(d),
     )
   }
 
@@ -196,6 +225,7 @@ export class DrawNetwork {
       .style("stroke-width", (d: Node): string => d.getStrokeWidth())
       .classed('is-tag-highlighted', (d: Node): boolean => this.isNodeInActiveTag(d))
       .classed('is-search-highlighted', (d: Node): boolean => this.isNodeSearchHighlighted(d))
+      .classed('is-link-action-source', (d: Node): boolean => this.isLinkActionSource(d))
       .call(this.drag(this.simulation))
       .on('click', this.clickNode)
       .on('mouseover', (e,d): void => {this.mouseOver(e,d)})
@@ -319,6 +349,7 @@ export class DrawNetwork {
       .join("line")
       .style("stroke", (d: Link): string => d.getStroke())
       .style("stroke-width", (d: Link): number => d.getStrokeWidth())
+      .classed('is-link-editable', this.linkEditMode)
       .on('click', this.clickLink)
     return this;
   }

@@ -1,7 +1,10 @@
 ﻿import MainEntity from "../../../core/builder/mainEntity";
 
+import {createUid} from "@/core/id/uid";
+
 export class FunctionalCircle extends MainEntity{
   id: number = 0
+  uid: string = createUid()
   nodeId: number = 0
   name: string = ''
 

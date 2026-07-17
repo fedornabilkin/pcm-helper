@@ -5,8 +5,11 @@ import {Link} from "./link";
 import {Tag} from "./tag";
 import type {NodeTypeCode} from "./nodeType";
 
+import {createUid} from "@/core/id/uid";
+
 export class Node extends MainEntity{
   id: number|undefined = undefined;
+  uid: string = createUid()
   name: string = ''
   description: string = ''
   nodeType: NodeTypeCode | null = null
