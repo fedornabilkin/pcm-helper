@@ -6,6 +6,7 @@ import FilterCard from "@/pcm/components/FilterCard.vue";
 import WordModal from "@/pcm/components/WordModal.vue";
 import NeedsModal from "@/pcm/components/NeedsModal.vue";
 import StressModal from "@/pcm/components/StressModal.vue";
+import PcmLearningNav from "@/pcm/components/PcmLearningNav.vue";
 
 const service = new PCM()
 
@@ -40,6 +41,7 @@ const openModal = (item, type) => {
 </script>
 <template lang="pug">
 .container.mb-4
+  PcmLearningNav
   .columns.is-multiline
     .column.is-half-tablet.is-one-third-fullhd(v-for="item in items")
       FilterCard(:item="item" @open-modal="openModal")

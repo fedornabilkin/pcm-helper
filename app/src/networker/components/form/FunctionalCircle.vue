@@ -3,6 +3,8 @@ import {ref, watch} from "vue";
 import type {FunctionalCircle as EntityFunctionalCircle} from "@/networker/entity/graph/functionalCircle";
 import type {Node as EntityNode} from "@/networker/entity/graph/node";
 import type {GraphService} from "@/networker/service/graphService";
+import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
+import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
 
 const props = defineProps<{
   node: EntityNode;
@@ -11,6 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits(['change'])
 const circles = ref<EntityFunctionalCircle[]>([])
+const {isPremium} = usePremiumAccess()
 
 const change = (): void => {
   refreshCircles()
@@ -42,6 +45,9 @@ const getInputValue = (event: Event): string => {
 }
 
 const setFillColor = (circle: EntityFunctionalCircle, event: Event): void => {
+  if (!isPremium.value) {
+    return
+  }
   props.graphService.setFuncCircleFill(circle, getInputValue(event))
   change()
 }
@@ -74,7 +80,7 @@ watch(
           span.icon
             i.fa.fa-trash
 
-      .field
+      .field(v-if="isPremium")
         .control.functional-circle-color
           input.input(
             type="color"
@@ -82,6 +88,9 @@ watch(
             @input="setFillColor(circle, $event)"
           )
           input.input(:value="circle.fill" type="text" readonly)
+      .functional-circle-premium(v-else)
+        span Настройка цвета кругов доступна в Premium.
+        PremiumAccessButton
 </template>
 
 <style scoped>
@@ -107,5 +116,14 @@ watch(
   display: grid;
   grid-template-columns: 3.5rem 1fr;
   gap: 0.5rem;
+}
+
+.functional-circle-premium {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
 }
 </style>

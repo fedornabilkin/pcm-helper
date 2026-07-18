@@ -4,6 +4,7 @@ import {PcmEntity} from "./pcm";
 import {Link} from "./link";
 import {Tag} from "./tag";
 import type {NodeTypeCode} from "./nodeType";
+import {createPcmHint, type PcmHint} from "./pcmHint";
 
 import {createUid} from "@/core/id/uid";
 
@@ -16,6 +17,7 @@ export class Node extends MainEntity{
   facts: Fact[] = []
   tags: number[] = []
   pcm: PcmEntity;
+  pcmHint: PcmHint = createPcmHint()
   lead: boolean = false
 
   x: number = 150

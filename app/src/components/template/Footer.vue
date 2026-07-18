@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {computed} from "vue";
 import PaymentMethodsButton from "@/components/monetisation/PaymentMethodsButton.vue";
+import PremiumAccessButton from "@/components/monetisation/PremiumAccessButton.vue";
 import {useTheme} from "@/core/composable/theme/useTheme";
 
 const {isDarkTheme, toggleTheme} = useTheme()
@@ -13,6 +14,8 @@ footer.footer
     .columns.is-vcentered.is-multiline
       .column.is-narrow
         PaymentMethodsButton
+      .column.is-narrow
+        PremiumAccessButton
       .column.is-narrow
         a(href="/") pcmhelper.ru
         | &nbsp;&copy; 2025

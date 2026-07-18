@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import {ref} from "vue";
+import {computed, ref} from "vue";
 import type {GraphService} from "@/networker/service/graphService";
 import type {Tag} from "@/networker/entity/graph/tag";
+import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
+import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
 
 const props = defineProps<{
   graphService: GraphService;
@@ -15,6 +17,9 @@ const emit = defineEmits<{
 }>()
 const tagName = ref('')
 const tagToRemove = ref<Tag | null>(null)
+const {getLimit: getAccessLimit} = usePremiumAccess()
+const tagLimit = computed(() => getAccessLimit('tagsPerNetwork'))
+const isTagLimitReached = computed(() => !props.graphService.canAddTag())
 
 const addTag = (): void => {
   const name = tagName.value.trim()
@@ -22,7 +27,10 @@ const addTag = (): void => {
     return
   }
 
-  props.graphService.addTag({name})
+  const tag = props.graphService.addTag({name})
+  if (!tag) {
+    return
+  }
   tagName.value = ''
   emit('change')
 }
@@ -66,9 +74,13 @@ const selectTag = (tag: Tag): void => {
             @keyup.enter="addTag"
           )
         .control
-          button.button.is-info(type="button" :disabled="!tagName.trim()" @click="addTag")
+          button.button.is-info(type="button" :disabled="!tagName.trim() || !props.graphService.canAddTag()" @click="addTag")
             span.icon
               i.fa.fa-plus
+      p.help {{ props.graphService.tags.length }} / {{ tagLimit }} тегов
+      .tag-limit-notice(v-if="isTagLimitReached")
+        span Лимит новых тегов достигнут.
+        PremiumAccessButton
       .tags(v-if="props.graphService.tags.length")
         span.tag.is-medium.is-hoverable(
           v-for="tag in props.graphService.tags"
@@ -97,5 +109,15 @@ const selectTag = (tag: Tag): void => {
 <style scoped>
 .tag {
   gap: 0.35rem;
+}
+
+.tag-limit-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.45rem 0 0.7rem;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
 }
 </style>

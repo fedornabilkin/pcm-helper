@@ -18,8 +18,12 @@ import {NodeToolTip} from "@/networker/graph/toolTip";
 import NetworkTransferModal from "@/networker/components/NetworkTransferModal.vue";
 import type {ImportPlan} from "@/networker/service/import/graphImportService";
 import PaymentMethodsButton from "@/components/monetisation/PaymentMethodsButton.vue";
+import {PCM_HINT_FILTERS} from "@/networker/entity/graph/pcmHint";
+import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
+import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
 
 const router = useRouter()
+const {isPremium} = usePremiumAccess()
 let networkId = ref(0)
 if(router.currentRoute.value.params.id) {
   networkId.value = Number(router.currentRoute.value.params.id)
@@ -95,7 +99,11 @@ const change = (): void => {
 }
 
 const addNode = (): void => {
-  selectedNode.value = graphService.addNode();
+  const node = graphService.addNode()
+  if (!node) {
+    return
+  }
+  selectedNode.value = node;
   graphService.setCurrentNode(selectedNode.value)
   reRender()
 }
@@ -167,6 +175,7 @@ const graphHost = ref<HTMLElement | null>(null)
 const pageHeight = ref(720)
 const activeInfoPanel = ref<string | null>(null)
 const activeTagId = ref<number | null>(null)
+const pcmScopeTagId = ref<number | null>(null)
 const selectedNode = ref<Node | undefined>(undefined)
 const isLinkEditMode = ref(false)
 const linkSourceNode = ref<Node | undefined>(undefined)
@@ -189,6 +198,91 @@ const matchingSearchNodes = computed((): Node[] => {
     return searchableText.includes(query)
   })
 })
+
+const pcmHintStats = computed(() => {
+  graphRevision.value
+  const scopedNodes = pcmScopeTagId.value === null
+    ? graphService.nodes
+    : graphService.nodes.filter(node => node.tags.includes(pcmScopeTagId.value!))
+  const nodesWithHints = scopedNodes.filter(node => Boolean(node.pcmHint?.filter))
+  const countByFilter = new Map<string, number>()
+  const countByNeed = new Map<string, number>()
+  const environment = {
+    innerInvolved: 0,
+    innerDistant: 0,
+    outerInvolved: 0,
+    outerDistant: 0,
+    incomplete: 0,
+  }
+
+  nodesWithHints.forEach(node => {
+    const hint = node.pcmHint
+    if (hint.filter) {
+      countByFilter.set(hint.filter, (countByFilter.get(hint.filter) ?? 0) + 1)
+    }
+    ;(Array.isArray(hint.needs) ? hint.needs : []).forEach(need => countByNeed.set(need, (countByNeed.get(need) ?? 0) + 1))
+
+    if (!hint.involvement || !hint.stimulus) {
+      environment.incomplete += 1
+      return
+    }
+
+    const key = hint.stimulus === 'inner'
+      ? hint.involvement === 'involved' ? 'innerInvolved' : 'innerDistant'
+      : hint.involvement === 'involved' ? 'outerInvolved' : 'outerDistant'
+    environment[key] += 1
+  })
+
+  return {
+    scopeTotal: scopedNodes.length,
+    total: nodesWithHints.length,
+    byFilter: PCM_HINT_FILTERS.map(item => ({...item, count: countByFilter.get(item.value) ?? 0})).filter(item => item.count > 0),
+    byNeed: [...countByNeed.entries()]
+      .map(([label, count]) => ({label, count}))
+      .sort((first, second) => second.count - first.count || first.label.localeCompare(second.label, 'ru-RU')),
+    environment,
+  }
+})
+
+const pcmScopeTags = computed((): Tag[] => {
+  graphRevision.value
+  return graphService.tags.filter((tag: Tag) => tag.id > 0)
+})
+
+const pcmMeetingSuggestions = computed((): string[] => {
+  const stats = pcmHintStats.value
+  if (stats.total < 2) {
+    return ['Для подсказки по формату встречи нужны хотя бы две заполненные PCM-гипотезы.']
+  }
+
+  const suggestions: string[] = []
+  const filters = new Set(stats.byFilter.map(item => item.value))
+  if (filters.has('logic') || filters.has('persistent')) {
+    suggestions.push('Перед встречей пришлите короткую повестку, критерии и место для мнений.')
+  }
+  if (filters.has('soulful') || filters.has('rebel')) {
+    suggestions.push('Оставьте в начале короткий живой чек-ин, а не переходите сразу к задаче.')
+  }
+  if (filters.has('dreamer')) {
+    suggestions.push('В конце зафиксируйте один ясный следующий шаг и не перегружайте выбором.')
+  }
+  if (filters.has('activist')) {
+    suggestions.push('Добавьте вариант быстро проверить решение действием и увидеть результат.')
+  }
+  if (!stats.byNeed.length) {
+    suggestions.push('Потребности ещё не отмечены: обсудите заранее, что поможет участникам включиться в разговор.')
+  } else if (!stats.byNeed.some(item => item.label === 'признание личности')) {
+    suggestions.push('Можно заранее заложить короткое признание вклада и внимания друг к другу.')
+  }
+  if (stats.environment.incomplete) {
+    suggestions.push(`Для ${stats.environment.incomplete} гипотез ещё не задана среда — не делайте выводов о предпочтительном формате.`)
+  }
+  return suggestions.slice(0, 3)
+})
+
+const setPcmScopeTag = (tagId: number | null): void => {
+  pcmScopeTagId.value = pcmScopeTagId.value === tagId ? null : tagId
+}
 
 const visibleSearchNodes = computed((): Node[] => matchingSearchNodes.value.slice(0, 8))
 
@@ -437,9 +531,10 @@ onBeforeUnmount((): void => {
               button.button.is-small.is-light(type="button" title="Импорт и экспорт сети" @click="openTransferModal")
                 span.icon
                   i.fa.fa-file-arrow-down
-              button.button.is-small.is-info(type="button" title="Добавить контакт" @click="addNode")
+              button.button.is-small.is-info(type="button" title="Добавить контакт" :disabled="!graphService.canAddNode()" @click="addNode")
                 span.icon
                   i.fa.fa-user-plus
+              PremiumAccessButton(v-if="!graphService.canAddNode()")
               button.button.is-small(
                 type="button"
                 :class="isLinkEditMode ? 'is-link' : 'is-light'"
@@ -529,6 +624,14 @@ onBeforeUnmount((): void => {
           span.icon
             i.fa.fa-circle-info
         button.button.is-small.is-light(
+          :class="{'is-info': activeInfoPanel === 'pcm'}"
+          type="button"
+          title="PCM-карта сети"
+          @click="toggleInfoPanel('pcm')"
+        )
+          span.icon
+            i.fa.fa-compass
+        button.button.is-small.is-light(
           :class="{'is-info': activeInfoPanel === 'circle'}"
           type="button"
           title="Круги"
@@ -577,6 +680,72 @@ onBeforeUnmount((): void => {
               li Используйте функциональные круги для группировки контактов по близости: поддержка, продуктивность, развитие.
               li Открывайте теги снизу, выбирайте активный тег и быстро подсвечивайте связанные с ним ноды на графе.
               li На вкладке волшебной палочки можно отправить текст и получить предположение о PCM-типе контакта.
+      .card.info-panel(v-if="activeInfoPanel === 'pcm'")
+        header.card-header
+          p.card-header-title PCM-карта сети
+          button.card-header-icon(type="button" title="Закрыть" aria-label="Закрыть" @click="activeInfoPanel = null")
+            span.delete
+        .card-content
+          p.pcm-network-overview-description
+            | Сводка только по заполненным PCM-гипотезам. Она помогает выбрать бережный формат общей встречи, но не оценивает и не определяет людей.
+          .pcm-network-overview
+            .pcm-network-overview-heading
+              span.icon
+                i.fa.fa-compass
+              strong Обзор гипотез
+              span.tag.is-light {{ pcmHintStats.total }} из {{ pcmHintStats.scopeTotal }}
+            .pcm-network-scope(v-if="isPremium && pcmScopeTags.length")
+              span PCM-группа
+              .tags
+                button.tag(type="button" :class="{'is-selected': pcmScopeTagId === null}" @click="setPcmScopeTag(null)") Вся сеть
+                button.tag(
+                  v-for="tag in pcmScopeTags"
+                  :key="tag.id"
+                  type="button"
+                  :class="{'is-selected': pcmScopeTagId === tag.id}"
+                  @click="setPcmScopeTag(tag.id)"
+                ) {{ tag.name }}
+            p.help(v-if="!pcmHintStats.total") Откройте контакт и заполните вкладку с компасом, чтобы собрать обзор без предположений о незаполненных данных.
+            template(v-else)
+              .tags.pcm-network-types(v-if="pcmHintStats.byFilter.length")
+                span.tag(v-for="item in pcmHintStats.byFilter" :key="item.value" :style="{'--pcm-filter-color': item.color}")
+                  span.icon
+                    i.fa(:class="item.icon")
+                  span {{ item.label }} · {{ item.count }}
+              .pcm-basic-statistics-note(v-if="!isPremium")
+                span Базовая сводка показывает распределение фильтров. Полная карта среды, потребностей и групп доступна в Premium.
+                PremiumAccessButton
+              template(v-else)
+                .pcm-network-needs(v-if="pcmHintStats.byNeed.length")
+                  .pcm-network-needs__title Отмеченные потребности
+                  .tags
+                    span.tag(v-for="item in pcmHintStats.byNeed" :key="item.label") {{ item.label }} · {{ item.count }}
+                .pcm-environment-map
+                  .pcm-environment-title Предпочтительная среда
+                  .pcm-environment-grid
+                    .pcm-environment-axis.is-top Внутренний стимул
+                    .pcm-environment-cell.is-involved
+                      strong Вовлечён
+                      span {{ pcmHintStats.environment.innerInvolved }}
+                    .pcm-environment-cell.is-distant
+                      strong Дистанцирован
+                      span {{ pcmHintStats.environment.innerDistant }}
+                    .pcm-environment-axis.is-bottom Внешний стимул
+                    .pcm-environment-cell.is-involved
+                      strong Вовлечён
+                      span {{ pcmHintStats.environment.outerInvolved }}
+                    .pcm-environment-cell.is-distant
+                      strong Дистанцирован
+                      span {{ pcmHintStats.environment.outerDistant }}
+                p.help(v-if="pcmHintStats.environment.incomplete")
+                  | Для {{ pcmHintStats.environment.incomplete }} гипотез ещё не задана среда.
+                .pcm-meeting-suggestions(v-if="pcmMeetingSuggestions.length")
+                  .pcm-meeting-suggestions__heading
+                    span.icon
+                      i.fa.fa-people-group
+                    strong Формат встречи
+                  ul
+                    li(v-for="suggestion in pcmMeetingSuggestions" :key="suggestion") {{ suggestion }}
       FunctionalCircleCard.info-panel(
         v-if="activeInfoPanel === 'circle'"
         @close="activeInfoPanel = null"
@@ -600,6 +769,7 @@ onBeforeUnmount((): void => {
 
     .workspace-payment
       PaymentMethodsButton
+      PremiumAccessButton
 
   NetworkTransferModal(
     v-if="isTransferModalOpen"
@@ -900,6 +1070,9 @@ Teleport(to="body")
 .workspace-payment {
   right: 0.5rem;
   bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   pointer-events: auto;
 }
 
@@ -944,6 +1117,186 @@ Teleport(to="body")
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.pcm-network-overview {
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--app-border);
+}
+
+.pcm-network-overview-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+
+.pcm-network-overview-description {
+  margin: 0 0 0.75rem;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.pcm-network-overview-heading .tag {
+  margin-left: auto;
+}
+
+.pcm-network-types {
+  margin-bottom: 0.8rem;
+}
+
+.pcm-network-types .tag {
+  border-color: color-mix(in srgb, var(--pcm-filter-color) 48%, var(--app-border));
+  background: color-mix(in srgb, var(--pcm-filter-color) 12%, var(--app-surface));
+  color: var(--app-text);
+}
+
+.pcm-network-types .icon {
+  color: var(--pcm-filter-color);
+}
+
+.pcm-network-scope {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  color: var(--app-text-muted);
+  font-size: 0.76rem;
+}
+
+.pcm-network-scope > span {
+  flex: 0 0 auto;
+  padding-top: 0.34rem;
+}
+
+.pcm-network-scope .tags {
+  margin-bottom: 0;
+}
+
+.pcm-network-scope .tag {
+  min-height: 1.8rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+  cursor: pointer;
+}
+
+.pcm-network-scope .tag.is-selected {
+  border-color: var(--app-accent);
+  background: color-mix(in srgb, var(--app-accent) 15%, var(--app-surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-accent) 35%, transparent);
+  font-weight: 700;
+}
+
+.pcm-network-needs {
+  margin-bottom: 0.8rem;
+}
+
+.pcm-basic-statistics-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.65rem;
+  border: 1px solid color-mix(in srgb, #e7a621 45%, var(--app-border));
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, #e7a621 10%, var(--app-surface-muted));
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.pcm-network-needs__title {
+  margin-bottom: 0.4rem;
+  color: var(--app-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.pcm-network-needs .tags {
+  margin-bottom: 0;
+}
+
+.pcm-environment-map {
+  padding: 0.7rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.55rem;
+  background: var(--app-surface-muted);
+}
+
+.pcm-environment-title {
+  margin-bottom: 0.45rem;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pcm-environment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+}
+
+.pcm-environment-axis {
+  grid-column: 1 / -1;
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.pcm-environment-axis.is-bottom {
+  margin-top: 0.2rem;
+}
+
+.pcm-environment-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 2rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.4rem;
+  background: var(--app-surface);
+  font-size: 0.78rem;
+}
+
+.pcm-environment-cell span {
+  min-width: 1.35rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.pcm-meeting-suggestions {
+  margin-top: 0.75rem;
+  padding: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 35%, var(--app-border));
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--app-accent) 9%, var(--app-surface-muted));
+}
+
+.pcm-meeting-suggestions__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.8rem;
+}
+
+.pcm-meeting-suggestions__heading .icon {
+  color: var(--app-accent);
+}
+
+.pcm-meeting-suggestions ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
   line-height: 1.35;
 }
 

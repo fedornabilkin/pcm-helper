@@ -8,6 +8,7 @@ import type {
   TagDTO,
 } from "@/networker/graph/types";
 import {cloneDataTransfer} from "@/networker/service/transfer/networkFile";
+import {checkFeatureAccess, type AccessGuardResult} from "@/core/composable/access/premiumAccess";
 
 export type ImportCandidateStatus =
   | 'new'
@@ -22,6 +23,7 @@ export type NodeMergeField =
   | 'nodeType'
   | 'tags'
   | 'pcm'
+  | 'pcmHint'
   | 'fill'
   | 'stroke'
   | 'strokeWidth'
@@ -114,6 +116,7 @@ const NODE_FIELDS: NodeMergeField[] = [
   'nodeType',
   'tags',
   'pcm',
+  'pcmHint',
   'fill',
   'stroke',
   'strokeWidth',
@@ -444,11 +447,19 @@ export class GraphImportService {
     }
   }
 
+  getMergeAccess(): AccessGuardResult {
+    return checkFeatureAccess('selectiveImport')
+  }
+
   createMergePlan(
     analysis: ImportAnalysis,
     decisions: ImportNodeDecision[],
     linkDecisions: ImportLinkDecision[] = [],
   ): ImportPlan {
+    if (!this.getMergeAccess().success) {
+      throw new Error('Объединение с выбором изменений доступно в Premium.')
+    }
+
     const result = cloneDataTransfer(analysis.local)
     const decisionMap = new Map(decisions.map(decision => [decision.key, decision]))
     const linkDecisionMap = new Map(linkDecisions.map(decision => [decision.key, decision]))

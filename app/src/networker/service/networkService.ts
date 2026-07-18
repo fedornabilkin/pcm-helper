@@ -3,8 +3,8 @@ import {Network} from "../entity/graph/network";
 import {useNetworkStore} from "../composable/networkStore";
 import {MainService} from "./mainService";
 import {clearGraphStore} from "../composable/graphStore";
+import {checkLimitAccess, type AccessGuardResult} from '@/core/composable/access/premiumAccess';
 
-export const MAX_NETWORK_COUNT = 3
 const DEFAULT_NETWORK_COUNT = 1
 
 export class NetworkService extends MainService{
@@ -26,7 +26,11 @@ export class NetworkService extends MainService{
   }
 
   canAddNetwork(): boolean {
-    return this.networks.length + DEFAULT_NETWORK_COUNT < MAX_NETWORK_COUNT
+    return this.getNetworkCreationAccess().success
+  }
+
+  getNetworkCreationAccess(): AccessGuardResult {
+    return checkLimitAccess('networks', this.networks.length + DEFAULT_NETWORK_COUNT)
   }
 
   addNetwork(name?: string): Network | undefined {

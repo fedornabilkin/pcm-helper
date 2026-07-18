@@ -19,6 +19,11 @@ import type {
   TagDTO,
 } from "@/networker/graph/types";
 import {cloneDataTransfer} from "@/networker/service/transfer/networkFile";
+import {
+  checkFeatureAccess,
+  checkLimitAccess,
+  type AccessGuardResult,
+} from "@/core/composable/access/premiumAccess";
 
 const FUNCTIONAL_CIRCLE_PRESETS = [
   {name: 'support', label: 'Поддержка', r: 100, fillAlpha: 0.26, strokeAlpha: 0.55},
@@ -119,7 +124,18 @@ export class GraphService extends MainService{
     return this.currentNode
   }
 
-  addNode(name: string = ""): Node {
+  canAddNode(): boolean {
+    return this.getNodeCreationAccess().success
+  }
+
+  getNodeCreationAccess(): AccessGuardResult {
+    return checkLimitAccess('nodesPerNetwork', this.nodes.length)
+  }
+
+  addNode(name: string = ""): Node | undefined {
+    if (!this.canAddNode()) {
+      return undefined
+    }
     this.nodeBuilder.build({ id: this.nextId(this.nodes), name });
     const node = this.nodeBuilder.getEntity();
     this.nodes.push(node);
@@ -213,6 +229,10 @@ export class GraphService extends MainService{
   }
 
   setFuncCircleFill(circle: FunctionalCircle, color: string): void {
+    if (!this.getFunctionalCircleCustomizationAccess().success) {
+      return
+    }
+
     const preset = this.getFuncCirclePreset(circle)
     const style = this.createFunctionalCircleStyle(color, preset)
     circle.fill = style.fill
@@ -282,7 +302,22 @@ export class GraphService extends MainService{
     if (index !== -1) node.facts.splice(index, 1);
   }
 
-  addTag(tag: any): Tag {
+  canAddTag(): boolean {
+    return this.getTagCreationAccess().success
+  }
+
+  getTagCreationAccess(): AccessGuardResult {
+    return checkLimitAccess('tagsPerNetwork', this.tags.length)
+  }
+
+  getFunctionalCircleCustomizationAccess(): AccessGuardResult {
+    return checkFeatureAccess('customFunctionalCircles')
+  }
+
+  addTag(tag: any): Tag | undefined {
+    if (!this.canAddTag()) {
+      return undefined
+    }
     tag.id = this.nextId(this.tags)
     this.tagBuilder.build(tag);
     const entity = this.tagBuilder.getEntity();

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, ref} from "vue";
+import {computed, ref, watch} from "vue";
 import type {GraphService} from "@/networker/service/graphService";
 import {
   GraphImportService,
@@ -20,6 +20,8 @@ import type {ParsedNetworkFile} from "@/networker/service/transfer/networkFile";
 import type {GraphLinkDTO} from "@/networker/graph/types";
 import {validateNetworkGraph} from "@/networker/service/transfer/networkFile";
 import packageJson from "../../../package.json";
+import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
+import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
 
 const props = defineProps<{
   graphService: GraphService;
@@ -36,8 +38,9 @@ type ImportMode = 'replace' | 'merge'
 type TransferPhase = 'select' | 'preview' | 'result'
 
 const importService = new GraphImportService()
+const {isPremium} = usePremiumAccess()
 const importFileInput = ref<HTMLInputElement | null>(null)
-const importMode = ref<ImportMode>('merge')
+const importMode = ref<ImportMode>(isPremium.value ? 'merge' : 'replace')
 const phase = ref<TransferPhase>('select')
 const parsedFile = ref<ParsedNetworkFile | null>(null)
 const analysis = ref<ImportAnalysis | null>(null)
@@ -47,6 +50,12 @@ const importSearch = ref('')
 const statusFilter = ref<ImportCandidateStatus | 'all'>('all')
 const errorMessage = ref('')
 const resultPlan = ref<ImportPlan | null>(null)
+
+watch(isPremium, (premium): void => {
+  if (!premium && importMode.value === 'merge') {
+    importMode.value = 'replace'
+  }
+})
 
 const statusLabels: Record<ImportCandidateStatus, string> = {
   new: 'Новый',
@@ -111,6 +120,7 @@ const fieldLabels: Record<NodeMergeField, string> = {
   nodeType: 'Тип контакта',
   tags: 'Теги',
   pcm: 'PCM',
+  pcmHint: 'PCM-гипотеза',
   fill: 'Цвет',
   stroke: 'Обводка',
   strokeWidth: 'Толщина обводки',
@@ -128,6 +138,13 @@ const getFieldValue = (node: ImportCandidate['incoming'] | undefined, field: Nod
   }
   if (field === 'pcm') {
     return node.pcm?.filter?.label ?? node.pcm?.filter?.name ?? 'Не задан'
+  }
+  if (field === 'pcmHint') {
+    const hint = node.pcmHint
+    if (!hint?.filter) {
+      return 'Не задана'
+    }
+    return `${hint.filter} · ${hint.confidence === 'high' ? 'высокая' : hint.confidence === 'medium' ? 'средняя' : 'низкая'} уверенность`
   }
   if (field === 'position') {
     return `x: ${Math.round(node.x ?? 0)}, y: ${Math.round(node.y ?? 0)}`
@@ -511,11 +528,18 @@ const close = (): void => emit('close')
               label.radio.mr-4
                 input.mr-1(v-model="importMode" type="radio" value="replace")
                 | Заменить
-              label.radio
-                input.mr-1(v-model="importMode" type="radio" value="merge")
+              label.radio(:class="{'has-text-grey-light': !isPremium}")
+                input.mr-1(v-model="importMode" type="radio" value="merge" :disabled="!isPremium")
                 | Объединить
             p(v-if="importMode === 'replace'") Полностью заменит данные текущей сети.
             p(v-else) Позволит выбрать контакты и разрешить конфликты.
+            .notification.is-warning.is-light.import-premium-note(v-if="!isPremium")
+              span.icon
+                i.fa.fa-crown
+              div
+                strong Выборочное объединение доступно в Premium
+                p Базовый доступ сохраняет безопасный импорт с полной заменой сети.
+                PremiumAccessButton
             .notification.is-warning.is-light.import-warning(v-if="importMode === 'replace'")
               strong Важно:
               |  текущие данные будут заменены. Перед применением сохранится локальная резервная копия.
@@ -814,6 +838,28 @@ const close = (): void => emit('close')
 .import-warning {
   margin-top: 1rem;
   margin-bottom: 0 !important;
+}
+
+.import-premium-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0 !important;
+}
+
+.import-premium-note > .icon {
+  color: #b77900;
+}
+
+.import-premium-note strong, .import-premium-note p {
+  display: block;
+}
+
+.import-premium-note p {
+  margin: 0.18rem 0 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .transfer-modal-actions,

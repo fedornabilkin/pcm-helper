@@ -4,6 +4,7 @@ import PCM from "@/pcm/service";
 import {ref} from "vue";
 import {pcmChannel} from "@/pcm/entity/channel";
 import ExampleChannelModal from "@/pcm/components/ExampleChannelModal.vue";
+import PcmLearningNav from "@/pcm/components/PcmLearningNav.vue";
 
 const service = new PCM()
 
@@ -27,6 +28,7 @@ const openModal = (item) => {
 
 <template lang="pug">
 .container.mb-4
+  PcmLearningNav
   .columns.is-multiline
     .column.is-half-tablet.is-one-third-fullhd(v-for="item in items")
       ChannelCard(:item="item" @open-modal="openModal")

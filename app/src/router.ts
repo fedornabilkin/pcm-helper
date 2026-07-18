@@ -7,6 +7,11 @@ import Channel from "@/components/page/Channel.vue";
 import Interaction from "@/components/page/Interaction.vue";
 import MymraCreation from "@/components/page/MymraCreation.vue";
 import Payment from "@/components/page/Payment.vue";
+import Conversation from "@/components/page/Conversation.vue";
+import Stress from "@/components/page/Stress.vue";
+import Needs from "@/components/page/Needs.vue";
+import Practice from "@/components/page/Practice.vue";
+import Dictionary from "@/components/page/Dictionary.vue";
 
 
 const routes = [
@@ -57,6 +62,51 @@ const routes = [
             hidePageTitle: true
         },
         component: MymraCreation
+    },
+    {
+        path: '/practice',
+        name: 'practice',
+        meta: {
+            title: 'Практикум PCM',
+            hidePageTitle: true,
+        },
+        component: Practice,
+    },
+    {
+        path: '/dictionary',
+        name: 'dictionary',
+        meta: {
+            title: 'Словарь и конструктор фраз',
+            hidePageTitle: true,
+        },
+        component: Dictionary,
+    },
+    {
+        path: '/needs',
+        name: 'needs',
+        meta: {
+            title: 'Потребности и ресурс',
+            hidePageTitle: true,
+        },
+        component: Needs,
+    },
+    {
+        path: '/stress',
+        name: 'stress',
+        meta: {
+            title: 'Стресс-радар',
+            hidePageTitle: true,
+        },
+        component: Stress,
+    },
+    {
+        path: '/conversation',
+        name: 'conversation',
+        meta: {
+            title: 'Навигатор разговора',
+            hidePageTitle: true,
+        },
+        component: Conversation,
     },
     {
         path: '/payment',

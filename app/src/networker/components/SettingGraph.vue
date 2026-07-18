@@ -6,8 +6,11 @@ import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import Fact from "@/networker/components/form/Fact.vue";
 import {Fact as EntityFact} from "@/networker/entity/graph/Fact"
 import Tag from "@/networker/components/form/Tag.vue";
+import PcmHint from "@/networker/components/form/PcmHint.vue";
 import {Tag as EntityTag} from "@/networker/entity/graph/tag"
 import {PcmTypeAiService} from "@/networker/service/ai/pcmTypeAiService";
+import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
+import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
 import {
   AiQueueSocketService,
   createSameOriginAiQueueEndpoint,
@@ -28,6 +31,7 @@ props.graphService.cbActiveNode = (node: Node) => {
 }
 
 const aiService = new PcmTypeAiService()
+const {isPremium} = usePremiumAccess()
 const aiText = ref('')
 const aiSummary = ref('')
 const isAiLoading = ref(false)
@@ -108,7 +112,7 @@ const close = (): void => {
 }
 
 const isAiSubmitDisabled = computed((): boolean => {
-  return !aiText.value.trim() || isAiLoading.value || aiCooldownSeconds.value > 0
+  return !isPremium.value || !aiText.value.trim() || isAiLoading.value || aiCooldownSeconds.value > 0
 })
 
 const speechRecognitionConstructor = computed((): any => {
@@ -160,7 +164,7 @@ const startAiCooldown = (seconds = 60): void => {
 }
 
 const detectPcmType = async (): Promise<void> => {
-  if (isAiSubmitDisabled.value) {
+  if (!isPremium.value || isAiSubmitDisabled.value) {
     return
   }
 
@@ -284,8 +288,10 @@ onBeforeUnmount(() => {
       a(:class="{'is-active': activeTab === 4}" @click="setActiveTab(4)")
         i.fa.fa-tag
       a(:class="{'is-active': activeTab === 5}" @click="setActiveTab(5)")
-        i.fa.fa-wand-magic-sparkles
+        i.fa.fa-compass
       a(:class="{'is-active': activeTab === 6}" @click="setActiveTab(6)")
+        i.fa.fa-wand-magic-sparkles
+      a(:class="{'is-active': activeTab === 7}" @click="setActiveTab(7)")
         i.fa.fa-circle-nodes
 
     .panel-block(v-if="activeTab === 1")
@@ -321,7 +327,20 @@ onBeforeUnmount(() => {
       )
 
     .panel-block(v-if="activeTab === 5")
+      PcmHint(
+        :node="currentNode"
+        @change="change"
+      )
+
+    .panel-block(v-if="activeTab === 6")
       .ai-type-tool
+        .notification.is-warning.is-light.ai-premium-note(v-if="!isPremium")
+          span.icon
+            i.fa.fa-crown
+          div
+            strong AI-анализ доступен в Premium
+            p Активируйте доступ для текущей сессии, чтобы анализировать текст и получать PCM-подсказки.
+            PremiumAccessButton
         .field
           .ai-text-header
             label.label Текст для анализа
@@ -339,6 +358,7 @@ onBeforeUnmount(() => {
               v-model="aiText"
               rows="7"
               placeholder="Вставьте фрагмент речи, переписки или заметки контакта"
+              :disabled="!isPremium"
             )
           .transcription-tools
             span.help(v-if="!isTranscriptionSupported") Браузер не поддерживает транскрибацию.
@@ -349,7 +369,7 @@ onBeforeUnmount(() => {
             button.button(
               type="button"
               :class="isTranscribing ? 'is-danger' : 'is-light'"
-              :disabled="!isTranscriptionSupported"
+              :disabled="!isPremium || !isTranscriptionSupported"
               :title="isTranscribing ? 'Остановить транскрибацию' : 'Начать транскрибацию'"
               @click="isTranscribing ? stopTranscription() : startTranscription()"
             )
@@ -380,7 +400,7 @@ onBeforeUnmount(() => {
           p.has-text-weight-semibold Резюме от ИИ
           pre {{ aiSummary }}
 
-    .panel-block(v-if="activeTab === 6")
+    .panel-block(v-if="activeTab === 7")
       FunctionalCircle(
         :node="currentNode"
         :graph-service="props.graphService"
@@ -393,6 +413,27 @@ onBeforeUnmount(() => {
 .ai-type-tool {
   width: 100%;
   min-width: 0;
+}
+
+.ai-premium-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+}
+
+.ai-premium-note > .icon {
+  color: #b77900;
+}
+
+.ai-premium-note strong, .ai-premium-note p {
+  display: block;
+}
+
+.ai-premium-note p {
+  margin: 0.2rem 0 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .ai-queue-status {

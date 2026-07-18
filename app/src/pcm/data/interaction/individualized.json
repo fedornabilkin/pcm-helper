@@ -2,6 +2,10 @@
   "name": "individualized",
   "title": "Индивидуализированный стиль",
   "description": "Руководитель нацелен на конкретного сотрудника",
+  "filter": {
+    "use": ["logic", "persistent", "soulful", "dreamer", "rebel", "activist"],
+    "ignore": []
+  },
   "efficient": [
     "повышает производительность труда",
     "оптимизирует человеческие ресурсы предприятия"

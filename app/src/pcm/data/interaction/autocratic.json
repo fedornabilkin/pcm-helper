@@ -2,6 +2,10 @@
   "name": "autocratic",
   "title": "Автократический стиль",
   "description": "Руководитель нацелен на результат",
+  "filter": {
+    "use": ["activist", "dreamer"],
+    "ignore": ["persistent", "rebel"]
+  },
   "efficient": [
     "когда сотруднику нужны директивы",
     "в кризисных ситуациях",

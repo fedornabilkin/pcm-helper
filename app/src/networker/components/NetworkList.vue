@@ -4,7 +4,7 @@ import {Network} from "@/networker/entity/graph/network";
 import type {RouteLocationNormalizedLoaded} from "vue-router";
 import type {GraphService} from "@/networker/service/graphService";
 import {NODE_TYPE_OPTIONS} from "@/networker/entity/graph/nodeType";
-import {MAX_NETWORK_COUNT} from "@/networker/service/networkService";
+import {usePremiumAccess} from '@/core/composable/access/premiumAccess';
 
 const props = defineProps<{
   currentNetwork?: Network;
@@ -22,6 +22,11 @@ const networkNameDraft = ref('')
 const networkNameInput = ref<HTMLInputElement | null>(null)
 const networkPendingDeletion = ref<Network | null>(null)
 const defaultItem = ref(new Network({id: 0, name: 'Основная'}))
+const {getLimit: getAccessLimit} = usePremiumAccess()
+const networkLimit = computed(() => getAccessLimit('networks'))
+const nodeLimit = computed(() => getAccessLimit('nodesPerNetwork'))
+const tagLimit = computed(() => getAccessLimit('tagsPerNetwork'))
+const totalNetworksCount = computed(() => props.networks.length + 1)
 
 const currentRoute = (r: RouteLocationNormalizedLoaded, i: Network): boolean => {
   if (r.params.id !== undefined && r.params.id !== '') {
@@ -97,7 +102,7 @@ const confirmNetworkRemoval = (): void => {
 }
 
 const isMaximumCount = (): boolean => {
-  return props.networks.length + 1 >= MAX_NETWORK_COUNT
+  return props.networks.length + 1 >= networkLimit.value
 }
 
 watch(
@@ -116,6 +121,15 @@ const nodesCount = computed((): number => {
 const linksCount = computed((): number => {
   props.revision
   return props.graphService.links.length
+})
+
+const tagsCount = computed((): number => {
+  props.revision
+  return props.graphService.tags.length
+})
+
+const hasLegacyOverLimit = computed((): boolean => {
+  return nodesCount.value > nodeLimit.value || tagsCount.value > tagLimit.value
 })
 
 const dataSize = computed((): string => {
@@ -253,10 +267,18 @@ const typeStats = computed((): {
               i.fa.fa-trash
 
     .network-summary
+      span.network-metric(title="Сети: использовано / доступно")
+        span.icon.is-small
+          i.fa.fa-diagram-project
+        strong {{ totalNetworksCount }} / {{ networkLimit }}
       span.network-metric(title="Контакты")
         span.icon.is-small
           i.fa.fa-user
-        strong {{ nodesCount }}
+        strong {{ nodesCount }} / {{ nodeLimit }}
+      span.network-metric(title="Теги")
+        span.icon.is-small
+          i.fa.fa-tags
+        strong {{ tagsCount }} / {{ tagLimit }}
       span.network-metric(title="Связи")
         span.icon.is-small
           i.fa.fa-link
@@ -283,6 +305,9 @@ const typeStats = computed((): {
             line(x1="1.5" y1="-5" x2="1.5" y2="5")
           i.fa(v-else :class="item.iconClass")
         strong {{ item.count }}
+
+    p.network-limit-note(v-if="hasLegacyOverLimit")
+      | Данные сверх текущего лимита сохранены. Ограничение действует только при добавлении новых контактов и тегов.
 
     .modal(:class="{'is-active': networkPendingDeletion}")
       .modal-background(@click="cancelNetworkRemoval")
@@ -398,6 +423,13 @@ const typeStats = computed((): {
   stroke-width: 1.7px;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.network-limit-note {
+  margin: 0.35rem 0 0;
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.3;
 }
 
 .network-delete-modal {

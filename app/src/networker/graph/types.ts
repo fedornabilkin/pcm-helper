@@ -4,6 +4,7 @@ import type {Link} from "@/networker/entity/graph/link";
 import type {Node} from "@/networker/entity/graph/node";
 import type {NodeTypeCode} from "@/networker/entity/graph/nodeType";
 import type {PcmEntity} from "@/networker/entity/graph/pcm";
+import type {PcmHint} from "@/networker/entity/graph/pcmHint";
 import type {Tag} from "@/networker/entity/graph/tag";
 
 export type EntityId = number;
@@ -27,6 +28,7 @@ export interface GraphNodeDTO {
   facts?: FactDTO[];
   tags?: EntityId[];
   pcm?: PcmDTO;
+  pcmHint?: PcmHint;
   fixed?: boolean;
   x?: number;
   y?: number;

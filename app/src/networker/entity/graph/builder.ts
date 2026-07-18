@@ -6,6 +6,7 @@ import {Network} from "./network";
 import {Fact} from "./Fact";
 import {PcmEntity} from "./pcm";
 import {Tag} from "./tag";
+import {createPcmHint} from "./pcmHint";
 
 import {createUid} from "@/core/id/uid";
 
@@ -23,6 +24,7 @@ export class NodeBuilder extends MainBuilder {
     this.entity.name = data.name
     this.entity.description = data.description
     this.entity.nodeType = data.nodeType ?? null
+    this.entity.pcmHint = createPcmHint(data.pcmHint)
     this.entity.facts = []
 
     this.entity.fixed = data.fixed || false

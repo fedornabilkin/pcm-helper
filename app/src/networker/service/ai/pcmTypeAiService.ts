@@ -1,4 +1,5 @@
 import {createAiProxyAdapter} from "@/networker/service/ai/proxy/aiProxyAdapter";
+import {checkFeatureAccess} from "@/core/composable/access/premiumAccess";
 
 const PCM_TYPE_PROMPT = `
 Ты помогаешь определить вероятный тип восприятия PCM по тексту человека.
@@ -43,6 +44,10 @@ export class PcmTypeAiService {
   private readonly proxyAdapter = createAiProxyAdapter()
 
   async detectType(text: string, clientRequestId?: string, clientId?: string): Promise<string> {
+    if (!checkFeatureAccess('aiAnalysis').success) {
+      throw new Error('AI-анализ доступен в Premium.')
+    }
+
     const user = `Определи вероятный PCM-тип по тексту:\n\n${text}`
 
     try {
