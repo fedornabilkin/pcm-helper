@@ -287,24 +287,25 @@ const typeStats = computed((): {
         span.icon.is-small
           i.fa.fa-database
         strong {{ dataSize }}
+    .network-type-summary
       span.network-type-stat(
-        v-for="item in typeStats"
-        :key="item.label"
-        :title="`${item.label}: ${item.count}`"
-        :style="item.color ? {borderColor: item.color, color: item.color} : undefined"
-      )
-        span.icon.is-small
-          svg.network-type-icon(v-if="item.iconKind === 'connector'" viewBox="-10 -10 20 20" aria-hidden="true")
-            line(x1="-5" y1="0" x2="5" y2="0")
-            circle(cx="-5" cy="0" r="2")
-            circle(cx="5" cy="0" r="2")
-          svg.network-type-icon(v-else-if="item.iconKind === 'condenser'" viewBox="-10 -10 20 20" aria-hidden="true")
-            line(x1="-5" y1="0" x2="-1.5" y2="0")
-            line(x1="1.5" y1="0" x2="5" y2="0")
-            line(x1="-1.5" y1="-5" x2="-1.5" y2="5")
-            line(x1="1.5" y1="-5" x2="1.5" y2="5")
-          i.fa(v-else :class="item.iconClass")
-        strong {{ item.count }}
+          v-for="item in typeStats"
+          :key="item.label"
+          :title="`${item.label}: ${item.count}`"
+          :style="item.color ? {borderColor: item.color, color: item.color} : undefined"
+        )
+          span.icon.is-small
+            svg.network-type-icon(v-if="item.iconKind === 'connector'" viewBox="-10 -10 20 20" aria-hidden="true")
+              line(x1="-5" y1="0" x2="5" y2="0")
+              circle(cx="-5" cy="0" r="2")
+              circle(cx="5" cy="0" r="2")
+            svg.network-type-icon(v-else-if="item.iconKind === 'condenser'" viewBox="-10 -10 20 20" aria-hidden="true")
+              line(x1="-5" y1="0" x2="-1.5" y2="0")
+              line(x1="1.5" y1="0" x2="5" y2="0")
+              line(x1="-1.5" y1="-5" x2="-1.5" y2="5")
+              line(x1="1.5" y1="-5" x2="1.5" y2="5")
+            i.fa(v-else :class="item.iconClass")
+          strong {{ item.count }}
 
     p.network-limit-note(v-if="hasLegacyOverLimit")
       | Данные сверх текущего лимита сохранены. Ограничение действует только при добавлении новых контактов и тегов.
@@ -402,6 +403,13 @@ const typeStats = computed((): {
   color: var(--app-text-muted);
   font-size: 0.75rem;
   line-height: 1;
+}
+
+.network-type-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.3rem;
 }
 
 .network-metric .icon,

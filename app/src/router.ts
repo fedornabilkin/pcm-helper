@@ -1,18 +1,17 @@
 import {createRouter, createWebHistory} from 'vue-router';
 import type {NavigationGuardNext, RouteLocationNormalized} from 'vue-router';
-import Main from '@/components/page/Main.vue';
-import PageNotFound from '@/components/page/PageNotFound.vue';
-import Personality from "@/components/page/Personality.vue";
-import Channel from "@/components/page/Channel.vue";
-import Interaction from "@/components/page/Interaction.vue";
-import MymraCreation from "@/components/page/MymraCreation.vue";
-import Payment from "@/components/page/Payment.vue";
-import Conversation from "@/components/page/Conversation.vue";
-import Stress from "@/components/page/Stress.vue";
-import Needs from "@/components/page/Needs.vue";
-import Practice from "@/components/page/Practice.vue";
-import Dictionary from "@/components/page/Dictionary.vue";
-
+const Main = () => import('@/components/page/Main.vue')
+const PageNotFound = () => import('@/components/page/PageNotFound.vue')
+const Personality = () => import('@/components/page/Personality.vue')
+const Channel = () => import('@/components/page/Channel.vue')
+const Interaction = () => import('@/components/page/Interaction.vue')
+const MymraCreation = () => import('@/components/page/MymraCreation.vue')
+const Payment = () => import('@/components/page/Payment.vue')
+const Conversation = () => import('@/components/page/Conversation.vue')
+const Stress = () => import('@/components/page/Stress.vue')
+const Needs = () => import('@/components/page/Needs.vue')
+const Practice = () => import('@/components/page/Practice.vue')
+const Dictionary = () => import('@/components/page/Dictionary.vue')
 
 const routes = [
     // {

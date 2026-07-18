@@ -1,6 +1,7 @@
 import {fileURLToPath, URL} from 'node:url'
 import {defineConfig, loadEnv} from 'vite'
 import vue from '@vitejs/plugin-vue'
+import {visualizer} from 'rollup-plugin-visualizer'
 import {WebSocket, WebSocketServer} from 'ws'
 
 const POLLINATIONS_PROXY_PATH = '/api/ai/pollinations'
@@ -130,6 +131,15 @@ export default defineConfig(({mode, command}) => {
       aiQueueWebSocketRelayPlugin(aiQueueWebSocketTargetUrl, rejectUnauthorized),
     ]
     : []
+  const bundleAnalyzerPlugins = mode === 'analyze'
+    ? [visualizer({
+      filename: 'dist/stats.html',
+      template: 'treemap',
+      gzipSize: true,
+      brotliSize: true,
+      open: false,
+    })]
+    : []
 
   if (command === 'serve' && !rejectUnauthorized) {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
@@ -139,6 +149,7 @@ export default defineConfig(({mode, command}) => {
     plugins: [
       vue(),
       ...devProxyPlugins,
+      ...bundleAnalyzerPlugins,
     ],
     server: {
       host: true,

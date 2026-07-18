@@ -21,28 +21,87 @@ import PaymentMethodsButton from "@/components/monetisation/PaymentMethodsButton
 import {PCM_HINT_FILTERS} from "@/networker/entity/graph/pcmHint";
 import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
 import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
+import type {LocalStoreSaveResult} from '@/core/composable/store/localStore'
 
 const router = useRouter()
 const {isPremium} = usePremiumAccess()
-let networkId = ref(0)
-if(router.currentRoute.value.params.id) {
-  networkId.value = Number(router.currentRoute.value.params.id)
+let networkService = new NetworkService()
+
+const resolveNetworkId = (value: unknown): number => {
+  if (value === undefined || value === '') {
+    return 0
+  }
+
+  const id = typeof value === 'string' || typeof value === 'number' ? Number(value) : NaN
+  return Number.isInteger(id) && id > 0 && networkService.findNetwork(id) ? id : 0
+}
+
+let networkId = ref(resolveNetworkId(router.currentRoute.value.params.id))
+if (router.currentRoute.value.params.id && networkId.value === 0) {
+  void router.replace({name: 'mymraCreation'})
 }
 let graphService = new GraphService({storeId: networkId.value});
-let networkService = new NetworkService({storeId: networkId.value});
 
 const links = ref(graphService.links);
 const funcCircle = ref(graphService.funcCircles);
 const networks = ref(networkService.networks);
 const graphRevision = ref(0)
+const hasStorageRecoveryIssue = (): boolean => {
+  return Boolean(graphService.getStorageRecoveryBackup() || networkService.getStorageRecoveryBackup())
+}
+const storageRecoveryRequired = ref(hasStorageRecoveryIssue())
+const recoveryBackupDownloaded = ref(false)
+
+const downloadRecoveryBackup = (): void => {
+  const graph = graphService.getStorageRecoveryBackup()
+  const networkList = networkService.getStorageRecoveryBackup()
+  if (!graph && !networkList) {
+    return
+  }
+
+  const blob = new Blob([JSON.stringify({
+    format: 'pcm-helper-storage-recovery',
+    createdAt: new Date().toISOString(),
+    graph,
+    networkList,
+  }, null, 2)], {type: 'application/json'})
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `pcm-helper-recovery-${new Date().toISOString().slice(0, 10)}.json`
+  link.click()
+  URL.revokeObjectURL(url)
+  recoveryBackupDownloaded.value = true
+}
+
+const overwriteRecoveredStorage = (): void => {
+  if (!recoveryBackupDownloaded.value) {
+    return
+  }
+
+  graphService.allowStorageRecoveryOverwrite()
+  networkService.allowStorageRecoveryOverwrite()
+  storageRecoveryRequired.value = false
+  saveAll()
+  saveNetworks()
+}
 
 watch(
     () => router.currentRoute.value.params.id,
     () => {
-      networkId.value = Number(router.currentRoute.value.params.id) ?? 0
+      const resolvedNetworkId = resolveNetworkId(router.currentRoute.value.params.id)
+      if (router.currentRoute.value.params.id && resolvedNetworkId === 0) {
+        void router.replace({name: 'mymraCreation'})
+        return
+      }
+
+      networkId.value = resolvedNetworkId
       graphService = new GraphService({storeId: networkId.value});
       links.value = graphService.links
       funcCircle.value = graphService.funcCircles
+      storageRecoveryRequired.value = hasStorageRecoveryIssue()
+      recoveryBackupDownloaded.value = false
+      currentNetwork.value = networkService.findNetwork(networkId.value)
       activeTagId.value = null
       draw.setActiveTagId(null)
       isLinkEditMode.value = false
@@ -59,6 +118,27 @@ const currentNetwork = ref<Network | undefined>(networkService.findNetwork(netwo
 
 const isLoading = ref(false)
 const isSaved = ref(false)
+const saveError = ref('')
+let saveToastTimeout: ReturnType<typeof setTimeout> | undefined
+
+const showSaveError = (result: LocalStoreSaveResult): void => {
+  if (result.success) {
+    return
+  }
+
+  const messages = {
+    quota_exceeded: 'Не удалось сохранить: в хранилище браузера закончилось место.',
+    storage_unavailable: 'Не удалось сохранить: хранилище браузера недоступно.',
+    serialization_failed: 'Не удалось подготовить данные к сохранению.',
+    recovery_required: 'Сохранение остановлено: локальные данные требуют восстановления. Исходная копия сохранена.',
+  }
+  isSaved.value = false
+  saveError.value = messages[result.reason]
+  if (saveToastTimeout) {
+    clearTimeout(saveToastTimeout)
+  }
+  saveToastTimeout = setTimeout(() => { saveError.value = '' }, 7000)
+}
 
 const graphId = 'nw-graph'
 const draw: DrawNetwork = new DrawNetwork({
@@ -83,14 +163,25 @@ const reRender = (): void => {
 }
 
 const saveAll = (): void => {
-  graphService.saveAll()
+  const saveResult = graphService.saveAll()
   isLoading.value = false
+  if (!saveResult.success) {
+    showSaveError(saveResult)
+    return
+  }
   isSaved.value = true
 
   links.value = graphService.links
   funcCircle.value = graphService.funcCircles
 
   setTimeout(() => {isSaved.value = false}, 5000)
+}
+
+const saveNetworks = (): void => {
+  const saveResult = networkService.saveAll()
+  if (!saveResult.success) {
+    showSaveError(saveResult)
+  }
 }
 
 const debounceChange = graphService.createDebounce()
@@ -126,7 +217,7 @@ const addNetwork = (): void => {
 
   currentNetwork.value = network
   networks.value = [...networkService.networks]
-  networkService.saveAll()
+  saveNetworks()
   router.push({params: {id: network.id}})
 }
 
@@ -134,7 +225,7 @@ const saveNetwork = (name?: string): void => {
   if (name && currentNetwork.value) {
     currentNetwork.value.name = name
   }
-  networkService.saveAll()
+  saveNetworks()
 }
 
 const removeNetwork = async (network: Network): Promise<void> => {
@@ -143,7 +234,7 @@ const removeNetwork = async (network: Network): Promise<void> => {
 
   networkService.removeNetwork(network);
   networks.value = [...networkService.networks]
-  networkService.saveAll()
+  saveNetworks()
 }
 
 const switchNetwork = (item: Network): void => {
@@ -513,6 +604,28 @@ onBeforeUnmount((): void => {
 .mymra-page(ref="pageElement" :style="{height: `${pageHeight}px`}")
   .network-scene
     .network-graph(ref="graphHost" :id="graphId")
+    .storage-recovery-panel(v-if="storageRecoveryRequired")
+      span.icon
+        i.fa.fa-triangle-exclamation
+      div
+        strong Нужна проверка локальных данных
+        p Мы нашли структуру, которую не удалось безопасно восстановить. Сначала скачайте исходную копию, затем при необходимости разрешите перезапись восстановленными данными.
+      .storage-recovery-panel__actions
+        button.button.is-small.is-light(type="button" @click="downloadRecoveryBackup")
+          span.icon
+            i.fa.fa-download
+          span Скачать копию
+        button.button.is-small.is-danger.is-light(type="button" :disabled="!recoveryBackupDownloaded" @click="overwriteRecoveredStorage")
+          span Перезаписать
+    .empty-network-state(v-if="graphService.nodes.length === 0")
+      span.icon
+        i.fa.fa-user-plus
+      strong Сеть пока пуста
+      span Добавьте первый контакт или импортируйте сохранённую сеть.
+      button.button.is-small.is-info(type="button" @click="addNode")
+        span.icon
+          i.fa.fa-plus
+        span Добавить контакт
 
     .workspace-topbar
       .network-menu
@@ -786,6 +899,11 @@ Teleport(to="body")
       span.icon
         i.fa.fa-check
       span Сохранено
+  Transition(name="save-toast")
+    .save-toast.is-danger(v-if="saveError" role="alert" aria-live="assertive")
+      span.icon
+        i.fa.fa-triangle-exclamation
+      span {{ saveError }}
 </template>
 
 <style>
@@ -807,6 +925,7 @@ Teleport(to="body")
 }
 
 .graph-container {
+  position: relative;
   width: 100% !important;
   height: 100% !important;
 }
@@ -819,6 +938,8 @@ Teleport(to="body")
 
 .graph-container .tooltip {
   display: none;
+  max-width: min(18rem, calc(100% - 1.5rem));
+  pointer-events: none;
   position: absolute;
   z-index: 10;
 }
@@ -895,6 +1016,79 @@ Teleport(to="body")
   min-width: 0;
 }
 
+.empty-network-state {
+  position: absolute;
+  z-index: 4;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: 0.45rem;
+  width: min(22rem, calc(100% - 2rem));
+  padding: 1.1rem;
+  border: 1px dashed var(--app-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--app-surface) 92%, transparent);
+  box-shadow: var(--app-shadow);
+  color: var(--app-text-muted);
+  font-size: 0.82rem;
+  text-align: center;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+}
+
+.storage-recovery-panel {
+  position: absolute;
+  z-index: 8;
+  top: 4rem;
+  left: 50%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  width: min(47rem, calc(100% - 2rem));
+  padding: 0.75rem;
+  border: 1px solid #e7b226;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, #e7b226 12%, var(--app-surface));
+  box-shadow: var(--app-shadow);
+  color: var(--app-text);
+  transform: translateX(-50%);
+}
+
+.storage-recovery-panel > .icon {
+  color: #b77900;
+  font-size: 1.1rem;
+}
+
+.storage-recovery-panel strong,
+.storage-recovery-panel p {
+  display: block;
+}
+
+.storage-recovery-panel p {
+  margin: 0.15rem 0 0;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.storage-recovery-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.empty-network-state > .icon {
+  color: var(--app-accent);
+  font-size: 1.2rem;
+}
+
+.empty-network-state strong {
+  color: var(--app-text);
+  font-size: 0.95rem;
+}
+
 .network-menu-actions {
   display: flex;
   align-items: center;
@@ -933,6 +1127,11 @@ Teleport(to="body")
   font-weight: 600;
   pointer-events: none;
   transform: translateX(-50%);
+}
+
+.save-toast.is-danger {
+  border-color: #f14668;
+  color: #b4233e;
 }
 
 .save-toast-enter-active,
@@ -1306,6 +1505,16 @@ Teleport(to="body")
 }
 
 @media screen and (max-width: 768px) {
+  .storage-recovery-panel {
+    top: 5.25rem;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .storage-recovery-panel__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+
   .workspace-topbar {
     right: auto;
     width: calc(100vw - 1rem);

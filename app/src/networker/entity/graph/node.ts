@@ -8,6 +8,10 @@ import {createPcmHint, type PcmHint} from "./pcmHint";
 
 import {createUid} from "@/core/id/uid";
 
+const endpointId = (endpoint: number | Node): number | undefined => {
+  return typeof endpoint === 'number' ? endpoint : endpoint.id
+}
+
 export class Node extends MainEntity{
   id: number|undefined = undefined;
   uid: string = createUid()
@@ -16,15 +20,15 @@ export class Node extends MainEntity{
   nodeType: NodeTypeCode | null = null
   facts: Fact[] = []
   tags: number[] = []
-  pcm: PcmEntity;
+  pcm?: PcmEntity;
   pcmHint: PcmHint = createPcmHint()
   lead: boolean = false
 
   x: number = 150
   y: number = 150
   fixed: boolean = false
-  fx: number|null;
-  fy: number|null;
+  fx: number|null = null
+  fy: number|null = null
   r: number = 17
   fill: string = '#9eb6b1'
   stroke: string = '#86b3a9'
@@ -54,20 +58,20 @@ export class Node extends MainEntity{
     this.active = !this.active
   }
 
-  isMyLink(link: Link, cb): boolean {
+  isMyLink(link: Link, cb: (nodeId: number | undefined) => void): boolean {
     const source = this.isMyLinkAsSource(link)
     const target = this.isMyLinkAsTarget(link)
-    if (source) {cb(link.target.id)}
-    if (target) {cb(link.source.id)}
+    if (source) {cb(endpointId(link.target))}
+    if (target) {cb(endpointId(link.source))}
     return source || target
   }
 
   isMyLinkAsSource(link: Link): boolean {
-    return link.source.id === this.id
+    return endpointId(link.source) === this.id
   }
 
   isMyLinkAsTarget(link: Link): boolean {
-    return link.target.id === this.id
+    return endpointId(link.target) === this.id
   }
 
   isMyTag(tag: Tag, cb: any): boolean {
@@ -90,11 +94,11 @@ export class Node extends MainEntity{
     return !this.active ? this.fill : this.strokeActive
   }
 
-  getStrokeWidth(): string {
+  getStrokeWidth(): number {
     return !this.active ? this.strokeWidth : this.strokeWidth * 5
   }
 
-  getPosition(): any {
+  getPosition(): {x: number; y: number} {
     return {x: this.x, y: this.y}
   }
 

@@ -1,26 +1,25 @@
 ﻿import {NetworkBuilder} from "../entity/graph/builder";
 import {Network} from "../entity/graph/network";
-import {useNetworkStore} from "../composable/networkStore";
+import {useNetworkStore, type NetworkStore} from "../composable/networkStore";
 import {MainService} from "./mainService";
 import {clearGraphStore} from "../composable/graphStore";
 import {checkLimitAccess, type AccessGuardResult} from '@/core/composable/access/premiumAccess';
+import type {LocalStoreSaveResult} from '@/core/composable/store/localStore';
 
 const DEFAULT_NETWORK_COUNT = 1
 
 export class NetworkService extends MainService{
-  private storeId: number = 0
   private networkBuilder: NetworkBuilder;
-  private networkStore: any;
+  private networkStore: NetworkStore;
 
   networks: Network[] = [];
 
-  constructor(config: any = {}) {
+  constructor() {
     super()
-    Object.assign(this, config)
 
     this.networkBuilder = new NetworkBuilder();
 
-    this.networkStore = useNetworkStore(this.name);
+    this.networkStore = useNetworkStore();
 
     this.networks = this.networkBuilder.createCollection(this.networkStore.networks.value);
   }
@@ -61,8 +60,16 @@ export class NetworkService extends MainService{
     return undefined
   }
 
-  saveAll(): void {
+  saveAll(): LocalStoreSaveResult {
     this.networkStore.networks.value = this.networks;
-    this.networkStore.saveAll();
+    return this.networkStore.saveAll();
+  }
+
+  getStorageRecoveryBackup(): unknown | undefined {
+    return this.networkStore.getRecoveryBackup()
+  }
+
+  allowStorageRecoveryOverwrite(): void {
+    this.networkStore.allowRecoveryOverwrite()
   }
 }

@@ -3,7 +3,7 @@
 import {createUid} from "@/core/id/uid";
 
 export class Fact extends MainEntity {
-  id: number;
+  id: number = 0
   uid: string = createUid()
   description: string = ''
 }

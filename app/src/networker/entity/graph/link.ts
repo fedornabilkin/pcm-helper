@@ -30,13 +30,13 @@ export class Link extends MainEntity{
     return this.status ? this.strokeWidth + 5 : this.strokeWidth
   }
 
-  toJSON() {
-    const data: any = { ...this };
+  toJSON(): Record<string, unknown> {
+    const data = {...this} as Record<string, unknown>;
 
-    if (this.source && this.source.id) {
+    if (this.source instanceof Node && this.source.id) {
       data.source = this.source.id;
     }
-    if (this.target && this.target.id) {
+    if (this.target instanceof Node && this.target.id) {
       data.target = this.target.id;
     }
 

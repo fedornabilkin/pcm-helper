@@ -6,11 +6,16 @@ interface IPosition {
 }
 
 export class ToolTip {
-  content: string
+  content = ''
   position: IPosition = {x:0, y:0, offsetX: 10, offsetY: 10}
 
-  constructor(config: any = {}) {
-    Object.assign(this, config)
+  constructor(config: Partial<Pick<ToolTip, 'content' | 'position'>> = {}) {
+    if (config.content !== undefined) {
+      this.content = config.content
+    }
+    if (config.position) {
+      this.position = {...this.position, ...config.position}
+    }
   }
 
   setPosition(x: number, y: number): void {
@@ -18,13 +23,13 @@ export class ToolTip {
     this.position.y = y
   }
 
-  initPosition(): [] {
+  initPosition(): [number, number] {
     const x: number = this.position.x + this.position.offsetX
     const y: number = this.position.y + this.position.offsetY
     return [x, y]
   }
 
-  createContent(item: any): ToolTip {
+  createContent(_item: unknown): ToolTip {
     return this
   }
 

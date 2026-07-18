@@ -1,5 +1,4 @@
-﻿// @ts-ignore
-import * as d3 from 'd3';
+﻿import * as d3 from 'd3';
 import { DataTransfer } from './dataTransfer';
 import { FunctionalCircle } from '../entity/graph/functionalCircle';
 import { Link } from '../entity/graph/link';
@@ -7,73 +6,111 @@ import { Node } from '../entity/graph/node';
 import {getNodeTypeOption} from '../entity/graph/nodeType';
 import {ToolTip} from "./toolTip";
 
+type SimulatedLink = Omit<Link, 'source' | 'target'> & {source: Node; target: Node}
+type NodeSelection = d3.Selection<SVGCircleElement, Node, SVGGElement, unknown>
+type LinkSelection = d3.Selection<SVGLineElement, SimulatedLink, SVGGElement, unknown>
+type CircleSelection = d3.Selection<SVGCircleElement, FunctionalCircle, SVGGElement, unknown>
+type LabelSelection = d3.Selection<SVGTextElement, Node, SVGGElement, unknown>
+type NodeBadgeSelection = d3.Selection<SVGGElement, Node, SVGGElement, unknown>
+type GroupSelection = d3.Selection<SVGGElement, unknown, d3.BaseType, unknown>
+
+interface GraphBox {
+  w: number;
+  h: number;
+  html?: {element?: HTMLElement | null; class?: string};
+}
+
+interface DrawNetworkConfig {
+  dto?: DataTransfer;
+  box?: Partial<GraphBox>;
+  toolTip?: ToolTip;
+  clickNode?: (event: MouseEvent, node: Node) => void;
+  clickLink?: (event: MouseEvent, link: Link) => void;
+  cbSimulationEnd?: () => void;
+}
+
 export class DrawNetwork {
-  box: any = {
+  box: GraphBox = {
     w: 800,
     h: 600,
     html: { element: null, class: '' },
   };
   dto: DataTransfer = new DataTransfer();
-  scope: any = {extra: {}};
+  scope: Record<number, {circle: {x: number; y: number}}> = {};
 
-  scale: any = {min: 0.05, max: 5}
+  scale = {min: 0.05, max: 5}
 
-  divElement: any;
-  container: any;
-  graph: any;
-  nodesGroup: any;
-  linksGroup: any;
-  funcCirclesGroup: any;
-  nodeTypeBadgesGroup: any;
-  labelsGroup: any;
-  nodes: any;
-  links: any;
-  funcCircles: any;
-  nodeTypeBadges: any;
-  labels: any;
-  simulation: any;
+  divElement!: d3.Selection<HTMLDivElement, unknown, null, undefined>;
+  container!: GroupSelection;
+  graph!: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  nodesGroup!: GroupSelection;
+  linksGroup!: GroupSelection;
+  funcCirclesGroup!: GroupSelection;
+  nodeTypeBadgesGroup!: GroupSelection;
+  labelsGroup!: GroupSelection;
+  nodes?: NodeSelection;
+  links?: LinkSelection;
+  funcCircles?: CircleSelection;
+  nodeTypeBadges?: NodeBadgeSelection;
+  labels?: LabelSelection;
+  simulation?: d3.Simulation<Node, SimulatedLink>;
 
-  toolTipBox: any;
-  toolTip: ToolTip|null;
+  toolTipBox!: d3.Selection<HTMLDivElement, unknown, null, undefined>;
+  toolTip: ToolTip;
   activeTagId: number | null = null;
   searchHighlightedNodeIds: Set<number> = new Set();
   linkActionSourceNodeId: number | null = null;
   linkEditMode = false;
 
-  clickNode = (e: any, d: Node) => {}
-  clickLink = (e: any, d: Link) => {}
+  clickNode: (event: MouseEvent, node: Node) => void = () => {}
+  clickLink: (event: MouseEvent, link: Link) => void = () => {}
   cbSimulationEnd = () => {}
 
-  constructor(config: any = {}) {
-    Object.assign(this, config)
-    if (!this.toolTip) {
-      this.toolTip = new ToolTip()
-    }
+  constructor(config: DrawNetworkConfig = {}) {
+    this.dto = config.dto ?? this.dto
+    this.box = {...this.box, ...config.box, html: {...this.box.html, ...config.box?.html}}
+    this.toolTip = config.toolTip ?? new ToolTip()
+    this.clickNode = config.clickNode ?? this.clickNode
+    this.clickLink = config.clickLink ?? this.clickLink
+    this.cbSimulationEnd = config.cbSimulationEnd ?? this.cbSimulationEnd
+  }
+
+  private getNodes(): Node[] {
+    return this.dto.getNodes() as Node[]
+  }
+
+  private getLinks(): SimulatedLink[] {
+    return this.dto.getLinks() as SimulatedLink[]
+  }
+
+  private getCircles(): FunctionalCircle[] {
+    return this.dto.getCircles() as FunctionalCircle[]
   }
 
   render(element: HTMLElement) {
     this.drawContainer(element)
       .drawGraph().initToolTip()
 
-    this.funcCirclesGroup = this.container.append('g').attr('class', 'functional-circle')
-    this.linksGroup = this.container.append('g').attr('class', 'links')
-    this.nodesGroup = this.container.append('g').attr('class', 'nodes')
-    this.nodeTypeBadgesGroup = this.container.append('g').attr('class', 'node-type-badges')
-    this.labelsGroup = this.container.append('g').attr('class', 'label')
+    this.funcCirclesGroup = this.container.append('g').attr('class', 'functional-circle') as GroupSelection
+    this.linksGroup = this.container.append('g').attr('class', 'links') as GroupSelection
+    this.nodesGroup = this.container.append('g').attr('class', 'nodes') as GroupSelection
+    this.nodeTypeBadgesGroup = this.container.append('g').attr('class', 'node-type-badges') as GroupSelection
+    this.labelsGroup = this.container.append('g').attr('class', 'label') as GroupSelection
 
     this.simulationInit()
       .drawFunctionalCircle().drawLink().drawNode().drawNodeTypeBadge().drawLabel()
 
-    this.simulation.on("tick", () => this.drawTick())
-    this.simulation.on("end", () => this.drawEnd())
+    this.simulation!.on("tick", () => this.drawTick())
+    this.simulation!.on("end", () => this.drawEnd())
   }
 
   reRender() {
     if (this.simulation) {
       this.drawFunctionalCircle().drawLink().drawNode().drawNodeTypeBadge().drawLabel()
 
-      this.simulation.nodes(this.dto.getNodes())
-      this.simulation.force('link').links(this.dto.getLinks())
+      this.simulation.nodes(this.getNodes())
+      const linkForce = this.simulation.force('link') as d3.ForceLink<Node, SimulatedLink>
+      linkForce.links(this.getLinks())
       this.simulation.alpha(1).restart()
       // this.simulation.alphaTarget(1).restart()
     }
@@ -158,33 +195,39 @@ export class DrawNetwork {
     return this;
   }
 
-  zoom(container: any): any {
-    return d3.zoom()
+  zoom(): d3.ZoomBehavior<SVGSVGElement, unknown> {
+    return d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([this.scale.min, this.scale.max])
-      .on("zoom", (event: any) => {
-        container.attr("transform", event.transform);
+      .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        this.container.attr("transform", event.transform.toString());
       })
   }
 
   initToolTip (): this {
-    this.toolTipBox = this.divElement.append('div').classed('tooltip', true)
+    this.toolTipBox = this.divElement.append('div')
+      .classed('tooltip', true)
+      .style('display', 'none')
+      .style('pointer-events', 'none')
+      .style('position', 'fixed')
+      .style('z-index', '100') as typeof this.toolTipBox
     return this
   }
 
   drawGraph(): this {
-    this.graph = this.divElement.append('svg')
+    const graph = this.divElement.append('svg')
       .attr('width', this.box.w + 'px')
       .attr('height', this.box.h + 'px')
+    this.graph = graph as typeof this.graph
 
-    this.container = this.graph.append('g').attr('class', 'zoom-container')
-    this.graph.call(this.zoom(this.container))
+    this.container = this.graph.append('g').attr('class', 'zoom-container') as GroupSelection
+    this.graph.call(this.zoom())
     return this;
   }
 
   drawFunctionalCircle(): this {
     this.funcCircles = this.funcCirclesGroup
-      .selectAll('circle')
-      .data(this.dto.getCircles(), d => `${d.id}-${d.name}`)
+      .selectAll<SVGCircleElement, FunctionalCircle>('circle')
+      .data(this.getCircles(), d => `${d.id}-${d.name}`)
       .join('circle')
       .attr('r', (d: FunctionalCircle): number => d.r)
       .style("fill", (d: FunctionalCircle): string => d.getFill())
@@ -192,17 +235,17 @@ export class DrawNetwork {
     return this;
   }
 
-  drag(simulation: d3): d3 {
-    const dragStart = (e: any, d: Node): void => {
+  drag(simulation: d3.Simulation<Node, SimulatedLink>): d3.DragBehavior<SVGCircleElement, Node, Node> {
+    const dragStart = (e: d3.D3DragEvent<SVGCircleElement, Node, Node>, d: Node): void => {
       if (!e.active) simulation.alphaTarget(1).restart()
       d.fx = d.x
       d.fy = d.y
     }
-    const dragMove = (e: any, d: Node): void => {
+    const dragMove = (e: d3.D3DragEvent<SVGCircleElement, Node, Node>, d: Node): void => {
       d.fx = e.x
       d.fy = e.y
     }
-    const dragEnd = (e: any, d: Node): void => {
+    const dragEnd = (e: d3.D3DragEvent<SVGCircleElement, Node, Node>, d: Node): void => {
       if (!e.active) simulation.alphaTarget(0)
       if (!d.isFixed()) {
         d.fx = null
@@ -210,34 +253,35 @@ export class DrawNetwork {
       }
     }
 
-    return d3.drag()
+    return d3.drag<SVGCircleElement, Node, Node>()
       .on("start", dragStart).on("drag", dragMove).on("end", dragEnd)
   }
 
   drawNode(): this {
     this.nodes = this.nodesGroup
-      .selectAll("circle")
-      .data(this.dto.getNodes(), d => d.id)
+      .selectAll<SVGCircleElement, Node>("circle")
+      .data(this.getNodes(), d => d.id ?? 0)
       .join("circle")
       .attr("r", (d: Node): number => d.getRadius())
       .style("fill", (d: Node): string => d.getFill())
       .style("stroke", (d: Node): string => d.getStroke())
-      .style("stroke-width", (d: Node): string => d.getStrokeWidth())
+      .style("stroke-width", (d: Node): number => d.getStrokeWidth())
       .classed('is-tag-highlighted', (d: Node): boolean => this.isNodeInActiveTag(d))
       .classed('is-search-highlighted', (d: Node): boolean => this.isNodeSearchHighlighted(d))
       .classed('is-link-action-source', (d: Node): boolean => this.isLinkActionSource(d))
-      .call(this.drag(this.simulation))
+      .call(this.drag(this.simulation!))
       .on('click', this.clickNode)
-      .on('mouseover', (e,d): void => {this.mouseOver(e,d)})
-      .on('mousemove', (e,d): void => {this.mouseMove(e,d)})
-      .on('mouseleave', (e,d): void => {this.mouseLeave(e,d)})
+      .on('mouseover', (event: MouseEvent, node: Node): void => {this.mouseOver(event, node)})
+      .on('mousemove', (event: MouseEvent, node: Node): void => {this.mouseMove(event, node)})
+      .on('mouseout', (event: MouseEvent, node: Node): void => {this.mouseLeave(event, node)})
+      .on('mouseleave', (event: MouseEvent, node: Node): void => {this.mouseLeave(event, node)})
     return this;
   }
 
   drawNodeTypeBadge(): this {
     this.nodeTypeBadges = this.nodeTypeBadgesGroup
-      .selectAll('g')
-      .data(this.dto.getNodes().filter((d: Node): boolean => Boolean(d.nodeType)), d => d.id)
+      .selectAll<SVGGElement, Node>('g')
+      .data(this.getNodes().filter((d: Node): boolean => Boolean(d.nodeType)), d => d.id ?? 0)
       .join('g')
       .attr('class', 'node-type-badge')
 
@@ -250,14 +294,14 @@ export class DrawNetwork {
       .style('stroke', 'var(--app-graph-badge-outline)')
       .style('stroke-width', '2px')
 
-    this.nodeTypeBadges.each((d: Node, index: number, groups: SVGGElement[]): void => {
-      this.drawNodeTypeIcon(d3.select(groups[index]), d)
+    this.nodeTypeBadges.each((d, index, groups): void => {
+      this.drawNodeTypeIcon(d3.select<SVGGElement, Node>(groups[index] as SVGGElement), d)
     })
 
     return this
   }
 
-  drawNodeTypeIcon(group: any, node: Node): void {
+  drawNodeTypeIcon(group: d3.Selection<SVGGElement, Node, null, undefined>, node: Node): void {
     const nodeType = getNodeTypeOption(node.nodeType)
     const iconGroup = group
       .append('g')
@@ -292,7 +336,7 @@ export class DrawNetwork {
     }
   }
 
-  drawFontAwesomeNodeTypeIcon(group: any, iconClass?: string): void {
+  drawFontAwesomeNodeTypeIcon(group: d3.Selection<SVGGElement, Node, null, undefined>, iconClass?: string): void {
     group.select('.node-type-icon').remove()
 
     group
@@ -313,39 +357,40 @@ export class DrawNetwork {
       .html(`<i class="fa ${iconClass ?? ''}"></i>`)
   }
 
-  mouseOver(e: any, d: any): void {
-    if(this.toolTipBox) {
-      this.toolTipBox.classed('is-block', true).classed('box', true)
-    }
-    if(this.toolTip) {
-      const content: string = this.toolTip.createContent(d).getContent()
-      this.toolTipBox.html(content)
-    }
+  mouseOver(event: MouseEvent, node: Node): void {
+    this.toolTipBox.classed('box', true).classed('is-block', false).style('display', 'block')
+    const content: string = this.toolTip.createContent(node).getContent()
+    this.toolTipBox.html(content)
+    this.moveToolTip(event)
   }
 
-  mouseMove(e: any, d: any): void {
-    if(this.toolTipBox && this.toolTip) {
-      this.toolTip.setPosition(e.layerX, e.layerY)
-      const [posX, posY] = this.toolTip.initPosition()
-
-      this.toolTipBox
-        .style('left', posX + 'px')
-        .style('top', posY + 'px')
-        .style('transform', 'translateY(-50%)')
-    }
+  mouseMove(event: MouseEvent, _node: Node): void {
+    this.moveToolTip(event)
   }
 
-  mouseLeave(e: any, d: any): void {
-    if(this.toolTipBox) {
-      this.toolTipBox.classed('is-block', false)
-    }
-    this.toolTip?.clear()
+  private moveToolTip(event: MouseEvent): void {
+    this.toolTip.setPosition(event.clientX, event.clientY)
+    const [posX, posY] = this.toolTip.initPosition()
+
+    this.toolTipBox
+      .style('left', posX + 'px')
+      .style('top', posY + 'px')
+      .style('transform', 'translateY(-50%)')
+  }
+
+  mouseLeave(_event: MouseEvent, _node: Node): void {
+    this.hideToolTip()
+  }
+
+  private hideToolTip(): void {
+    this.toolTipBox.classed('is-block', false).style('display', 'none')
+    this.toolTip.clear()
   }
 
   drawLink(): this {
     this.links = this.linksGroup
-      .selectAll("line")
-      .data(this.dto.getLinks(), d => d.id)
+      .selectAll<SVGLineElement, SimulatedLink>("line")
+      .data(this.getLinks(), d => d.id)
       .join("line")
       .style("stroke", (d: Link): string => d.getStroke())
       .style("stroke-width", (d: Link): number => d.getStrokeWidth())
@@ -356,8 +401,8 @@ export class DrawNetwork {
 
   drawLabel(): this {
     this.labels = this.labelsGroup
-      .selectAll('text')
-      .data(this.dto.getNodes(), d => d.id)
+      .selectAll<SVGTextElement, Node>('text')
+      .data(this.getNodes(), d => d.id ?? 0)
       .join("text")
       .text((d: Node): string => d.getName())
       .attr('font-size', (d: Node): number => d.getFontSize())
@@ -370,29 +415,31 @@ export class DrawNetwork {
   }
 
   drawTick(): void {
-    this.links
-      .attr("x1", (d: Link): number => d.source.x)
-      .attr("y1", (d: Link): number => d.source.y)
-      .attr("x2", (d: Link): number => d.target.x)
-      .attr("y2", (d: Link): number => d.target.y)
+    this.links!
+      .attr("x1", (d: SimulatedLink): number => d.source.x)
+      .attr("y1", (d: SimulatedLink): number => d.source.y)
+      .attr("x2", (d: SimulatedLink): number => d.target.x)
+      .attr("y2", (d: SimulatedLink): number => d.target.y)
 
-    this.nodes
-      .attr('class', (d: Node): void => {
-        this.scope[d.id] = {circle: d.getPosition()}
+    this.nodes!
+      .each((d: Node): void => {
+        if (d.id !== undefined) {
+          this.scope[d.id] = {circle: d.getPosition()}
+        }
       })
       .attr("cx", (d: Node): number => d.x)
       .attr("cy", (d: Node): number => d.y)
 
-    this.labels
+    this.labels!
       .attr('dx', (d: Node): number => d.x + d.getRadius())
       .attr('dy', (d: Node): number => d.y - d.getRadius() / 2)
 
-    this.nodeTypeBadges
+    this.nodeTypeBadges!
       .attr('transform', (d: Node): string => `translate(${d.x - d.getRadius() * 0.72}, ${d.y - d.getRadius() * 0.72})`)
 
-    this.funcCircles
-      .attr('cx', (d: any): number => this.scope[d.nodeId]?.circle?.x ?? this.box.w / 2)
-      .attr('cy', (d: any): number => this.scope[d.nodeId]?.circle?.y ?? this.box.h / 2)
+    this.funcCircles!
+      .attr('cx', (d: FunctionalCircle): number => this.scope[d.nodeId]?.circle?.x ?? this.box.w / 2)
+      .attr('cy', (d: FunctionalCircle): number => this.scope[d.nodeId]?.circle?.y ?? this.box.h / 2)
   }
 
   drawEnd(): void {
@@ -404,12 +451,12 @@ export class DrawNetwork {
       .strength(-500)
       .distanceMin(30).distanceMax(750)
 
-    const simDistance = d3.forceLink(this.dto.getLinks())
-      .id((d: any): number => d.id)
-      .distance((d: any): number => d.distance ?? 450)
+    const simDistance = d3.forceLink<Node, SimulatedLink>(this.getLinks())
+      .id((d: Node): number => d.id ?? 0)
+      .distance((d: SimulatedLink): number => d.distance ?? 450)
 
-    this.simulation = d3.forceSimulation()
-      .nodes(this.dto.getNodes())
+    this.simulation = d3.forceSimulation<Node, SimulatedLink>()
+      .nodes(this.getNodes())
       .force("manyBody", manyBody)
       .force("center", d3.forceCenter(this.box.w / 2, this.box.h / 2))
       .force("link", simDistance)

@@ -4,7 +4,7 @@ import { Link } from "../entity/graph/link";
 import {Fact} from "../entity/graph/Fact";
 import {Tag} from "../entity/graph/tag";
 import {FunctionalCircle} from "../entity/graph/functionalCircle";
-import { useGraphStore } from "../composable/graphStore";
+import {useGraphStore, type GraphStore} from "../composable/graphStore";
 import { DataTransfer } from "../graph/dataTransfer";
 import {MainService} from "./mainService";
 import {IFileAdapter} from "./transfer/fileAdapter";
@@ -24,6 +24,18 @@ import {
   checkLimitAccess,
   type AccessGuardResult,
 } from "@/core/composable/access/premiumAccess";
+import type {LocalStoreSaveResult} from "@/core/composable/store/localStore";
+
+export interface GraphServiceConfig {
+  storeId?: number;
+  cbActiveNode?: (node: Node | undefined) => void;
+}
+
+type NewFunctionalCircle = Omit<FunctionalCircleDTO, 'id'> & {id?: number}
+type NewTag = Omit<TagDTO, 'id'> & {id?: number}
+const linkEndpointId = (endpoint: number | Node): number | undefined => {
+  return typeof endpoint === 'number' ? endpoint : endpoint.id
+}
 
 const FUNCTIONAL_CIRCLE_PRESETS = [
   {name: 'support', label: 'Поддержка', r: 100, fillAlpha: 0.26, strokeAlpha: 0.55},
@@ -40,21 +52,21 @@ export class GraphService extends MainService{
   private circleBuilder: CircleBuilder;
   private factBuilder: FactBuilder;
   private tagBuilder: TagBuilder;
-  private graphStore: any;
-  private fileAdapter: IFileAdapter
-  currentNode: Node;
-  private currentFact: Fact;
+  private graphStore: GraphStore;
+  private fileAdapter?: IFileAdapter
+  currentNode?: Node;
 
   nodes: GraphNodeCollection = [];
   links: GraphLinkCollection = [];
   tags: TagCollection = [];
   funcCircles: FunctionalCircleCollection = [];
 
-  cbActiveNode = (node: Node) => {}
+  cbActiveNode: (node: Node | undefined) => void = () => {}
 
-  constructor(config: any = {}) {
+  constructor(config: GraphServiceConfig = {}) {
     super();
-    Object.assign(this, config)
+    this.storeId = config.storeId ?? 0
+    this.cbActiveNode = config.cbActiveNode ?? this.cbActiveNode
 
     this.nodeBuilder = new NodeBuilder();
     this.linkBuilder = new LinkBuilder();
@@ -113,14 +125,14 @@ export class GraphService extends MainService{
     this.storeId = id
   }
 
-  setCurrentNode(node: Node|undefined): void {
+  setCurrentNode(node?: Node): void {
     this.currentNode?.toggleActive()
     node?.toggleActive()
     this.currentNode = node
     this.cbActiveNode(node)
   }
 
-  getCurrentNode(): Node {
+  getCurrentNode(): Node | undefined {
     return this.currentNode
   }
 
@@ -143,12 +155,16 @@ export class GraphService extends MainService{
     return node;
   }
 
-  removeNode(node: Node): void {
+  removeNode(node?: Node): void {
+    if (!node) {
+      return
+    }
+
     const index = this.nodes.findIndex(n => n.id === node.id);
     if (index === -1) return;
 
     this.links
-      .filter(l => l.source.id === node.id || l.target.id === node.id)
+      .filter(l => linkEndpointId(l.source) === node.id || linkEndpointId(l.target) === node.id)
       .forEach(l => this.removeLink(l));
 
     this.nodes.splice(index, 1);
@@ -166,8 +182,8 @@ export class GraphService extends MainService{
 
   findLinkBetween(source: Node, target: Node): Link | undefined {
     return this.links.find(link => {
-      return (link.source.id === source.id && link.target.id === target.id)
-        || (link.source.id === target.id && link.target.id === source.id)
+      return (linkEndpointId(link.source) === source.id && linkEndpointId(link.target) === target.id)
+        || (linkEndpointId(link.source) === target.id && linkEndpointId(link.target) === source.id)
     })
   }
 
@@ -191,7 +207,7 @@ export class GraphService extends MainService{
     if (index !== -1) this.links.splice(index, 1);
   }
 
-  addFuncCircle(props: any) {
+  addFuncCircle(props: NewFunctionalCircle): FunctionalCircle {
     this.circleBuilder.build(props);
     const circle = this.circleBuilder.getEntity();
     this.funcCircles.push(circle);
@@ -260,7 +276,7 @@ export class GraphService extends MainService{
   }
 
   private createFunctionalCircleStyle(color: string, preset: typeof FUNCTIONAL_CIRCLE_PRESETS[number]): {fill: string; stroke: string} {
-    const rgb = this.hexToRgb(color) ?? this.hexToRgb(DEFAULT_FUNCTIONAL_CIRCLE_COLOR)
+    const rgb = this.hexToRgb(color) ?? {r: 71, g: 157, b: 248}
 
     return {
       fill: `rgba(${rgb.r},${rgb.g},${rgb.b},${preset.fillAlpha})`,
@@ -285,7 +301,7 @@ export class GraphService extends MainService{
     return `#${[r, g, b].map(value => value.toString(16).padStart(2, '0')).join('')}`
   }
 
-  removeFuncCircle(circleId: string | number) {
+  removeFuncCircle(circleId: string | number): void {
     const index = this.funcCircles.findIndex(c => c.id === circleId);
     if (index !== -1) this.funcCircles.splice(index, 1);
   }
@@ -314,7 +330,7 @@ export class GraphService extends MainService{
     return checkFeatureAccess('customFunctionalCircles')
   }
 
-  addTag(tag: any): Tag | undefined {
+  addTag(tag: NewTag): Tag | undefined {
     if (!this.canAddTag()) {
       return undefined
     }
@@ -325,7 +341,7 @@ export class GraphService extends MainService{
     return entity;
   }
 
-  removeTag(tag: Tag) {
+  removeTag(tag: Tag): void {
     const index = this.tags.findIndex(t => t.id === tag.id);
     if (index !== -1) {
       this.tags.splice(index, 1);
@@ -336,7 +352,7 @@ export class GraphService extends MainService{
     })
   }
 
-  bindTag(tag: Tag, node: Node) {
+  bindTag(tag: Tag, node: Node): void {
     if (node.tags.includes(tag.id)) {
       return
     }
@@ -344,7 +360,7 @@ export class GraphService extends MainService{
     node.tags.push(tag.id)
   }
 
-  unbindTag(tag: Tag, node: Node) {
+  unbindTag(tag: Tag, node: Node): void {
     node.tags = node.tags.filter(id => id !== tag.id)
   }
 
@@ -366,7 +382,10 @@ export class GraphService extends MainService{
 
     try {
       this.fromDTO(cloneDataTransfer(dto))
-      this.saveAll()
+      const saveResult = this.saveAll()
+      if (!saveResult.success) {
+        throw new Error('Не удалось сохранить изменения в браузере.')
+      }
     } catch (error) {
       this.fromDTO(backup)
       this.saveAll()
@@ -374,19 +393,33 @@ export class GraphService extends MainService{
     }
   }
 
-  saveAll(): void {
+  saveAll(): LocalStoreSaveResult {
     this.graphStore.nodes.value = this.nodes;
     this.graphStore.links.value = this.links;
     this.graphStore.funcCircles.value = this.funcCircles;
     this.graphStore.tags.value = this.tags;
-    this.graphStore.saveAll();
+    return this.graphStore.saveAll();
+  }
+
+  getStorageRecoveryBackup(): unknown | undefined {
+    return this.graphStore.getRecoveryBackup()
+  }
+
+  allowStorageRecoveryOverwrite(): void {
+    this.graphStore.allowRecoveryOverwrite()
   }
 
   export(): string | ArrayBuffer {
+    if (!this.fileAdapter) {
+      throw new Error('Адаптер экспорта не настроен.')
+    }
     return this.fileAdapter.export(this.toDTO());
   }
 
   import(data: string | ArrayBuffer): void {
+    if (!this.fileAdapter) {
+      throw new Error('Адаптер импорта не настроен.')
+    }
     const dto = this.fileAdapter.import(data);
     this.applyDTOAtomic(dto);
   }

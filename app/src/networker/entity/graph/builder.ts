@@ -9,20 +9,27 @@ import {Tag} from "./tag";
 import {createPcmHint} from "./pcmHint";
 
 import {createUid} from "@/core/id/uid";
+import type {FactDTO, FunctionalCircleDTO, GraphLinkDTO, GraphNodeDTO, PcmDTO, TagDTO} from "@/networker/graph/types";
 
-export class NodeBuilder extends MainBuilder {
+interface NetworkDTO {
+  id?: number;
+  uid?: string;
+  name?: string;
+}
+
+export class NodeBuilder extends MainBuilder<Node, GraphNodeDTO> {
   entity: Node = new Node()
 
   createEntity(): Node {
     return new Node();
   }
 
-  build(data: any) {
+  build(data: GraphNodeDTO): void {
     super.build(data);
     this.entity.id = data.id
     this.entity.uid = data.uid ?? createUid()
-    this.entity.name = data.name
-    this.entity.description = data.description
+    this.entity.name = data.name ?? ''
+    this.entity.description = data.description ?? ''
     this.entity.nodeType = data.nodeType ?? null
     this.entity.pcmHint = createPcmHint(data.pcmHint)
     this.entity.facts = []
@@ -30,8 +37,8 @@ export class NodeBuilder extends MainBuilder {
     this.entity.fixed = data.fixed || false
     this.entity.x = typeof data.x === 'number' ? data.x : this.entity.x
     this.entity.y = typeof data.y === 'number' ? data.y : this.entity.y
-    this.entity.fx = data.fx
-    this.entity.fy = data.fy
+    this.entity.fx = data.fx ?? null
+    this.entity.fy = data.fy ?? null
     this.entity.r = typeof data.r === 'number' ? data.r : this.entity.r
     if (data.fill) {
       this.entity.fill = data.fill
@@ -59,34 +66,34 @@ export class NodeBuilder extends MainBuilder {
   }
 }
 
-export class PcmBuilder extends MainBuilder {
+export class PcmBuilder extends MainBuilder<PcmEntity, PcmDTO> {
   entity: PcmEntity = new PcmEntity()
 
   createEntity(): PcmEntity {
     return new PcmEntity();
   }
 
-  build(data: any) {
+  build(data: PcmDTO): void {
     super.build(data);
     this.entity.filter = data.filter
   }
 }
 
-export class LinkBuilder extends MainBuilder {
+export class LinkBuilder extends MainBuilder<Link, GraphLinkDTO> {
   entity: Link = new Link()
 
   createEntity(): Link {
     return new Link();
   }
 
-  build(data: any) {
+  build(data: GraphLinkDTO): void {
     super.build(data);
-    this.entity.id = data.id
+    this.entity.id = data.id ?? 0
     this.entity.uid = data.uid ?? createUid()
     this.entity.source = data.source
     this.entity.target = data.target
-    this.entity.distance = data.distance
-    this.entity.status = data.status
+    this.entity.distance = data.distance ?? this.entity.distance
+    this.entity.status = data.status ?? false
     if (data.stroke) {
       this.entity.stroke = data.stroke
     }
@@ -96,20 +103,20 @@ export class LinkBuilder extends MainBuilder {
   }
 }
 
-export class CircleBuilder extends MainBuilder {
+export class CircleBuilder extends MainBuilder<FunctionalCircle, FunctionalCircleDTO> {
   entity: FunctionalCircle = new FunctionalCircle()
 
   createEntity(): FunctionalCircle {
     return new FunctionalCircle();
   }
 
-  build(data: any) {
+  build(data: FunctionalCircleDTO): void {
     super.build(data);
-    this.entity.id = data.id
+    this.entity.id = data.id ?? 0
     this.entity.uid = data.uid ?? createUid()
-    this.entity.nodeId = data.nodeId
-    this.entity.name = data.name
-    this.entity.r = data.r
+    this.entity.nodeId = data.nodeId ?? 0
+    this.entity.name = data.name ?? ''
+    this.entity.r = data.r ?? this.entity.r
     if (data.fill) {
       this.entity.fill = data.fill
     }
@@ -119,49 +126,49 @@ export class CircleBuilder extends MainBuilder {
   }
 }
 
-export class NetworkBuilder extends MainBuilder {
+export class NetworkBuilder extends MainBuilder<Network, NetworkDTO> {
   entity: Network = new Network()
 
   createEntity(): Network {
     return new Network();
   }
 
-  build(data: any) {
+  build(data: NetworkDTO): void {
     super.build(data);
-    this.entity.id = data.id
+    this.entity.id = data.id ?? 0
     this.entity.uid = data.uid ?? createUid()
-    this.entity.name = data.name
+    this.entity.name = data.name ?? ''
   }
 }
 
-export class FactBuilder extends MainBuilder {
+export class FactBuilder extends MainBuilder<Fact, FactDTO> {
   entity: Fact = new Fact()
 
   createEntity(): Fact {
     return new Fact();
   }
 
-  build(data: any) {
+  build(data: FactDTO): void {
     super.build(data);
-    this.entity.id = data.id
+    this.entity.id = data.id ?? 0
     this.entity.uid = data.uid ?? createUid()
-    this.entity.description = data.description
+    this.entity.description = data.description ?? ''
   }
 }
 
-export class TagBuilder extends MainBuilder {
+export class TagBuilder extends MainBuilder<Tag, TagDTO> {
   entity: Tag = new Tag()
 
   createEntity(): Tag {
     return new Tag();
   }
 
-  build(data: any) {
+  build(data: TagDTO): void {
     super.build(data);
-    this.entity.id = data.id
+    this.entity.id = data.id ?? 0
     this.entity.uid = data.uid ?? createUid()
-    this.entity.name = data.name
-    this.entity.group = data.group
-    this.entity.color = data.color
+    this.entity.name = data.name ?? ''
+    this.entity.group = data.group ?? ''
+    this.entity.color = data.color ?? ''
   }
 }
