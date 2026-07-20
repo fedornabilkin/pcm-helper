@@ -69,6 +69,10 @@ const aiQueueWebSocketRelayPlugin = (targetUrl, rejectUnauthorized) => ({
 
     const localServer = new WebSocketServer({noServer: true})
 
+    server.httpServer.once('close', () => {
+      localServer.close()
+    })
+
     server.httpServer.on('upgrade', (request, socket, head) => {
       if (!request.url?.startsWith(AI_QUEUE_WS_PATH)) {
         return

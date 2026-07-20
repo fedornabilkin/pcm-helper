@@ -22,6 +22,11 @@ import {PCM_HINT_FILTERS} from "@/networker/entity/graph/pcmHint";
 import {usePremiumAccess} from '@/core/composable/access/premiumAccess'
 import PremiumAccessButton from '@/components/monetisation/PremiumAccessButton.vue'
 import type {LocalStoreSaveResult} from '@/core/composable/store/localStore'
+import {
+  formatNetworkBackupDate,
+  isNetworkBackupOverdue,
+  readNetworkBackupDate,
+} from '@/networker/service/transfer/backupStatus'
 
 const router = useRouter()
 const {isPremium} = usePremiumAccess()
@@ -37,6 +42,7 @@ const resolveNetworkId = (value: unknown): number => {
 }
 
 let networkId = ref(resolveNetworkId(router.currentRoute.value.params.id))
+const lastNetworkBackupDate = ref<Date | null>(readNetworkBackupDate(networkId.value))
 if (router.currentRoute.value.params.id && networkId.value === 0) {
   void router.replace({name: 'mymraCreation'})
 }
@@ -96,6 +102,7 @@ watch(
       }
 
       networkId.value = resolvedNetworkId
+      lastNetworkBackupDate.value = readNetworkBackupDate(resolvedNetworkId)
       graphService = new GraphService({storeId: networkId.value});
       links.value = graphService.links
       funcCircle.value = graphService.funcCircles
@@ -568,6 +575,20 @@ const openTransferModal = (): void => {
   isTransferModalOpen.value = true
 }
 
+const handleNetworkExported = (downloadedAt: Date): void => {
+  lastNetworkBackupDate.value = downloadedAt
+}
+
+const backupReminderText = computed((): string => {
+  if (!lastNetworkBackupDate.value) {
+    return 'Сделайте первую резервную копию сети.'
+  }
+
+  return `Последняя копия: ${formatNetworkBackupDate(lastNetworkBackupDate.value)}. Пора скачать свежую.`
+})
+
+const isBackupReminderVisible = computed(() => isNetworkBackupOverdue(lastNetworkBackupDate.value))
+
 const closeTransferModal = (): void => {
   isTransferModalOpen.value = false
 }
@@ -657,6 +678,10 @@ onBeforeUnmount((): void => {
                 span.icon
                   i.fa.fa-link
                 span.is-hidden-mobile Связь
+        button.backup-reminder(v-if="isBackupReminderVisible" type="button" @click="openTransferModal")
+          span.icon.backup-reminder-icon
+            i.fa.fa-triangle-exclamation
+          span {{ backupReminderText }}
       .link-mode-hint.tag.is-info.is-light(v-if="isLinkEditMode")
         i.fa.fa-link.mr-1
         | {{ linkSourceNode ? 'Выберите второй узел' : 'Выберите первый узел или связь' }}
@@ -890,6 +915,7 @@ onBeforeUnmount((): void => {
     :network-id="networkId"
     :network-name="currentNetwork?.name ?? 'Основная'"
     @close="closeTransferModal"
+    @exported="handleNetworkExported"
     @imported="handleNetworkImported"
   )
 
@@ -1010,6 +1036,32 @@ Teleport(to="body")
   background: var(--app-surface-soft);
   box-shadow: var(--app-shadow);
   pointer-events: auto;
+}
+
+.backup-reminder {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0;
+  border: 0;
+  border-top: 1px solid var(--app-border);
+  background: transparent;
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+}
+
+.backup-reminder:hover {
+  color: var(--app-link);
+}
+
+.backup-reminder-icon {
+  color: #e7a01a;
 }
 
 .network-menu {

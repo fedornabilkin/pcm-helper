@@ -16,6 +16,11 @@ import {
 } from "@/networker/service/import/graphImportService";
 import {ImportRevisionService} from "@/networker/service/import/importRevisionService";
 import {JsonFileAdapter} from "@/networker/service/transfer/fileAdapter";
+import {
+  formatNetworkBackupDate,
+  readNetworkBackupDate,
+  recordNetworkBackupDownload,
+} from '@/networker/service/transfer/backupStatus'
 import type {ParsedNetworkFile} from "@/networker/service/transfer/networkFile";
 import type {GraphLinkDTO} from "@/networker/graph/types";
 import {validateNetworkGraph} from "@/networker/service/transfer/networkFile";
@@ -31,6 +36,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  exported: [downloadedAt: Date];
   imported: [plan: ImportPlan];
 }>()
 
@@ -50,6 +56,7 @@ const importSearch = ref('')
 const statusFilter = ref<ImportCandidateStatus | 'all'>('all')
 const errorMessage = ref('')
 const resultPlan = ref<ImportPlan | null>(null)
+const lastNetworkBackupDate = ref<Date | null>(readNetworkBackupDate(props.networkId))
 
 watch(isPremium, (premium): void => {
   if (!premium && importMode.value === 'merge') {
@@ -354,6 +361,9 @@ const exportNetworkFile = (): void => {
   document.body.appendChild(anchorElement)
   anchorElement.click()
   document.body.removeChild(anchorElement)
+  recordNetworkBackupDownload(props.networkId, exportedAt)
+  lastNetworkBackupDate.value = exportedAt
+  emit('exported', exportedAt)
   emit('close')
 }
 
@@ -522,6 +532,14 @@ const close = (): void => emit('close')
           .column.transfer-column
             h3.title.is-5 Экспорт
             p Сохранит текущую сеть, метаданные ревизии, дату и время создания.
+            p.transfer-backup-status(v-if="lastNetworkBackupDate")
+              span.icon.is-small
+                i.fa.fa-clock
+              span Последняя копия: {{ formatNetworkBackupDate(lastNetworkBackupDate) }}
+            p.transfer-backup-status(v-else)
+              span.icon.is-small
+                i.fa.fa-download
+              span Копию сети ещё не скачивали.
           .column.transfer-column
             h3.title.is-5 Импорт
             .field
@@ -833,6 +851,15 @@ const close = (): void => emit('close')
 
 .transfer-column .title {
   color: var(--app-text);
+}
+
+.transfer-backup-status {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
 }
 
 .import-warning {
