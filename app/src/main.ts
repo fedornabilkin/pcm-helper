@@ -5,8 +5,8 @@ import App from './App.vue';
 import {useTheme} from "@/core/composable/theme/useTheme";
 
 import '@fortawesome/fontawesome-free/css/fontawesome.css';
-import '@/assets/font-awesome.scss';
-import '@/assets/bulma/app.scss';
+import '@/assets/font-awesome.css';
+import 'bulma/css/bulma.css';
 import '@/assets/bulma/root-custom.css'
 
 useTheme().applyTheme()
