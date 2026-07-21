@@ -541,9 +541,10 @@ const handleNodeSearchInput = (): void => {
 }
 
 const selectSearchNode = (node: Node): void => {
-  nodeSearchQuery.value = node.getName()
-  selectedSearchNodeId.value = node.id ?? null
-  isNodeSearchOpen.value = false
+  clearNodeSearch()
+  graphService.setCurrentNode(node)
+  selectedNode.value = node
+  reRender()
 }
 
 const selectFirstSearchNode = (): void => {
@@ -1207,6 +1208,7 @@ Teleport(to="body")
   left: 50%;
   z-index: 6;
   width: min(380px, calc(100vw - 1rem));
+  pointer-events: auto;
   transform: translateX(-50%);
 }
 

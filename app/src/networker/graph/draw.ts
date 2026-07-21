@@ -33,7 +33,7 @@ export class DrawNetwork {
   box: GraphBox = {
     w: 800,
     h: 600,
-    html: { element: null, class: '' },
+    html: { element: null, class: 'graph-container' },
   };
   dto: DataTransfer = new DataTransfer();
   scope: Record<number, {circle: {x: number; y: number}}> = {};
